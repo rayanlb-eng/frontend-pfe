@@ -3,8 +3,10 @@ import DashboardRoundedIcon from '@mui/icons-material/DashboardRounded'
 import DescriptionRoundedIcon from '@mui/icons-material/DescriptionRounded'
 import GroupIcon from '@mui/icons-material/Group'
 import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded'
+import SummarizeRoundedIcon from '@mui/icons-material/SummarizeRounded'
 import SchemaRoundedIcon from '@mui/icons-material/SchemaRounded'
 import SettingsRoundedIcon from '@mui/icons-material/SettingsRounded'
+import AssessmentRoundedIcon from '@mui/icons-material/AssessmentRounded'
 import { Avatar, Box, Button, ButtonBase, Chip, Stack, Typography } from '@mui/material'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { CONNECTED_USER_ROLE_KEY } from '../../Pages/Users/users.data'
@@ -28,6 +30,12 @@ const items = [
     description: 'Priorisation et arbitrage DDRH',
     icon: <SchemaRoundedIcon sx={{ fontSize: 21 }} />,
     path: '/analyse',
+  },
+  {
+    label: 'Rapport',
+    description: 'Synthese et export direction',
+    icon: <SummarizeRoundedIcon sx={{ fontSize: 21 }} />,
+    path: '/rapport',
   },
   {
     label: 'Parametres',
@@ -152,6 +160,8 @@ export default function Sidebar() {
               ? location.pathname.startsWith('/fiches')
               : item.path === '/analyse'
                 ? location.pathname.startsWith('/analyse')
+              : item.path === '/rapport'
+                ? location.pathname.startsWith('/rapport')
               : location.pathname === item.path
 
           return (

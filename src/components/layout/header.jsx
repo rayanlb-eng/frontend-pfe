@@ -45,6 +45,10 @@ const pageMeta = {
     title: 'Analyse et priorisation',
     subtitle: 'Consolidation DDRH, regroupement des demandes et arbitrage budgetaire',
   },
+  '/rapport': {
+    title: 'Rapport de synthese',
+    subtitle: 'Compilation des besoins valides, budgets estimes et exports direction',
+  },
   '/users': {
     title: 'Utilisateurs',
     subtitle: 'Gestion des comptes, roles et acces applicatifs',

@@ -86,7 +86,7 @@ export function FicheSendForm({
   onMassFailure,
   feedback,
   massFailureAlert,
-}) {
+ }) {
   return (
     <Paper elevation={0} sx={sectionPaperSx}>
       <Stack spacing={2}>
@@ -245,6 +245,8 @@ export function FichePreviewCard({ template }) {
     </Paper>
   )
 }
+
+
 
 export function FichesTrackingTable({ rows, onManualResend, onReopen, onOpenForm }) {
   return (

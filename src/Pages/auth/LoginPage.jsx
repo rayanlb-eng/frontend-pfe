@@ -16,13 +16,29 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link as RouterLink, useNavigate } from 'react-router-dom'
 import BrandHeader from '../../components/auth/Brandheader'
 import PasswordField from '../../components/auth/PasswordField'
+import {
+  CONNECTED_USER_EMAIL_KEY,
+  CONNECTED_USER_ROLE_KEY,
+  initialUsers,
+} from '../Users/users.data'
 import { inputSx } from '../../theme/authstyles'
 
 const MAX_ATTEMPTS = 3
 const BLOCK_DURATION_MS = 5 * 60 * 1000
-const DEMO_EMAIL = 'admin@mobilis.dz'
 const DEMO_PASSWORD = 'Mobilis123'
 const TWO_FACTOR_STORAGE_KEY = 'twoFactorEnabled'
+const DEMO_ACCOUNTS = [
+  {
+    identifier: 'admin',
+    email: 'admin@mobilis.dz',
+    role: 'DDRH',
+  },
+  ...initialUsers.map((user) => ({
+    identifier: user.email.split('@')[0],
+    email: user.email,
+    role: user.accessRole,
+  })),
+]
 
 function formatRemainingTime(ms) {
   const totalSeconds = Math.max(0, Math.ceil(ms / 1000))
@@ -32,7 +48,7 @@ function formatRemainingTime(ms) {
 }
 
 function LoginPage({ onLogin }) {
-  const [email, setEmail] = useState('')
+  const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
   const [rememberMe, setRememberMe] = useState(true)
   const [error, setError] = useState('')
@@ -49,7 +65,7 @@ function LoginPage({ onLogin }) {
   const navigate = useNavigate()
 
   const isBlocked = blockedUntil > Date.now()
-  const isDisabled = !email.trim() || !password.trim() || loading || isBlocked
+  const isDisabled = !identifier.trim() || !password.trim() || loading || isBlocked
 
   useEffect(() => {
     if (!isBlocked) {
@@ -113,8 +129,13 @@ function LoginPage({ onLogin }) {
 
     await new Promise((resolve) => window.setTimeout(resolve, 900))
 
-    const isValidCredentials =
-      email.trim().toLowerCase() === DEMO_EMAIL && password === DEMO_PASSWORD
+    const normalizedIdentifier = identifier.trim().toLowerCase()
+    const matchedAccount = DEMO_ACCOUNTS.find(
+      (account) =>
+        account.email.toLowerCase() === normalizedIdentifier ||
+        account.identifier.toLowerCase() === normalizedIdentifier
+    )
+    const isValidCredentials = Boolean(matchedAccount) && password === DEMO_PASSWORD
 
     if (!isValidCredentials) {
       setLoading(false)
@@ -126,8 +147,11 @@ function LoginPage({ onLogin }) {
     localStorage.removeItem('loginFailedAttempts')
     localStorage.removeItem('loginBlockedUntil')
 
+    localStorage.setItem(CONNECTED_USER_EMAIL_KEY, matchedAccount.email)
+    localStorage.setItem(CONNECTED_USER_ROLE_KEY, matchedAccount.role)
+
     onLogin?.({
-      email,
+      identifier,
       password,
       rememberMe,
     })
@@ -144,7 +168,7 @@ function LoginPage({ onLogin }) {
     sessionStorage.setItem(
       'pending2FA',
       JSON.stringify({
-        email: email.trim(),
+        email: matchedAccount.email,
         rememberMe,
       })
     )
@@ -198,7 +222,7 @@ function LoginPage({ onLogin }) {
               Demo frontend
             </Typography>
             <Typography sx={{ mt: 0.2, fontSize: '0.84rem' }}>
-              Utilisateur: {DEMO_EMAIL} | Mot de passe: {DEMO_PASSWORD}
+              Exemples: `admin` ou `admin@mobilis.dz` | `k.ziani` ou `k.ziani@mobilis.dz` | Mot de passe: {DEMO_PASSWORD}
             </Typography>
           </Alert>
 
@@ -229,14 +253,14 @@ function LoginPage({ onLogin }) {
           ) : null}
 
           <TextField
-            label="Adresse e-mail professionnelle"
-            type="email"
-            placeholder="nom.prenom@mobilis.dz"
+            label="Nom d'utilisateur ou e-mail"
+            type="text"
+            placeholder="admin ou nom.prenom@mobilis.dz"
             autoComplete="username"
             fullWidth
             variant="outlined"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            value={identifier}
+            onChange={(e) => setIdentifier(e.target.value)}
             sx={inputSx}
             disabled={loading || isBlocked}
           />

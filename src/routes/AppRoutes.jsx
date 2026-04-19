@@ -7,6 +7,7 @@ import Dashboard from '../Pages/Dashboard/dashboard'
 import AnalysePage from '../Pages/Analyse/AnalysePage'
 import FicheFormPage from '../Pages/Fiches/FicheFormPage'
 import FichesPage from '../Pages/Fiches/FichesPage'
+import Rapport from '../Pages/Rapport/Rapport'
 import Users from '../Pages/Users/Users'
 import Parametres from '../Pages/Parametres/Parameters'
 import ProtectedRoute from './ProtectedRoute'
@@ -34,6 +35,15 @@ export default function AppRoutes() {
         element={
           <ProtectedRoute>
             <AnalysePage />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/rapport"
+        element={
+          <ProtectedRoute>
+            <Rapport />
           </ProtectedRoute>
         }
       />

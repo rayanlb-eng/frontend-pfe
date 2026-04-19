@@ -197,7 +197,7 @@ export default function FichesPage() {
             massFailureAlert={massFailureAlert}
           />
 
-          <FichePreviewCard template={selectedTemplate} />
+          
         </Box>
 
         <FichesTrackingTable
