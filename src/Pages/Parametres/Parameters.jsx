@@ -1,0 +1,321 @@
+import NotificationsActiveRoundedIcon from '@mui/icons-material/NotificationsActiveRounded'
+import PersonOutlineRoundedIcon from '@mui/icons-material/PersonOutlineRounded'
+import ShieldRoundedIcon from '@mui/icons-material/ShieldRounded'
+import TuneRoundedIcon from '@mui/icons-material/TuneRounded'
+import {
+  Alert,
+  Box,
+  Chip,
+  FormControlLabel,
+  MenuItem,
+  Paper,
+  Select,
+  Stack,
+  Switch,
+  Typography,
+} from '@mui/material'
+import { useEffect, useState } from 'react'
+import MainLayout from '../../components/layout/mainLayout'
+import { CONNECTED_USER_EMAIL_KEY, CONNECTED_USER_ROLE_KEY } from '../Users/users.data'
+import { structureRecipients } from '../Fiches/fiches.data'
+
+const TWO_FACTOR_STORAGE_KEY = 'twoFactorEnabled'
+const NOTIFICATIONS_STORAGE_KEY = 'emailNotificationsEnabled'
+
+const sectionCardSx = {
+  p: { xs: 2, md: 2.4 },
+  borderRadius: '18px',
+  background: 'linear-gradient(180deg, rgba(255,255,255,0.99) 0%, rgba(248,250,255,0.98) 100%)',
+  border: '1px solid #e5ebf3',
+  boxShadow: '0 10px 24px rgba(20, 31, 56, 0.08)',
+}
+
+const iconBoxSx = (background, color) => ({
+  width: 46,
+  height: 46,
+  borderRadius: '14px',
+  bgcolor: background,
+  color,
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  flexShrink: 0,
+})
+
+export default function Parameters() {
+  const [twoFactorEnabled, setTwoFactorEnabled] = useState(false)
+  const [emailNotificationsEnabled, setEmailNotificationsEnabled] = useState(true)
+  const [connectedUserRole, setConnectedUserRole] = useState('DDRH')
+  const [connectedUserEmail, setConnectedUserEmail] = useState('k.ziani@mobilis.dz')
+
+  useEffect(() => {
+    setTwoFactorEnabled(localStorage.getItem(TWO_FACTOR_STORAGE_KEY) === 'true')
+
+    const storedNotifications = localStorage.getItem(NOTIFICATIONS_STORAGE_KEY)
+    setEmailNotificationsEnabled(storedNotifications !== 'false')
+    setConnectedUserRole(localStorage.getItem(CONNECTED_USER_ROLE_KEY) || 'DDRH')
+    setConnectedUserEmail(localStorage.getItem(CONNECTED_USER_EMAIL_KEY) || 'k.ziani@mobilis.dz')
+  }, [])
+
+  const handleToggleTwoFactor = (event) => {
+    const checked = event.target.checked
+    setTwoFactorEnabled(checked)
+    localStorage.setItem(TWO_FACTOR_STORAGE_KEY, String(checked))
+  }
+
+  const handleToggleNotifications = (event) => {
+    const checked = event.target.checked
+    setEmailNotificationsEnabled(checked)
+    localStorage.setItem(NOTIFICATIONS_STORAGE_KEY, String(checked))
+  }
+
+  const handleConnectedRoleChange = (event) => {
+    const value = event.target.value
+    setConnectedUserRole(value)
+    localStorage.setItem(CONNECTED_USER_ROLE_KEY, value)
+  }
+
+  const handleConnectedEmailChange = (event) => {
+    const value = event.target.value
+    setConnectedUserEmail(value)
+    localStorage.setItem(CONNECTED_USER_EMAIL_KEY, value)
+  }
+
+  return (
+    <MainLayout>
+      <Box sx={{ display: 'grid', gap: 3 }}>
+        <Box>
+          <Typography
+            sx={{
+              fontSize: '1.6rem',
+              fontWeight: 800,
+              color: '#1b2740',
+            }}
+          >
+            Parametres
+          </Typography>
+          <Typography
+            sx={{
+              mt: 0.6,
+              fontSize: '0.92rem',
+              color: '#72809a',
+              maxWidth: 720,
+            }}
+          >
+            Espace de configuration pour la securite, les preferences d'utilisation et les options
+            temporaires du front-end.
+          </Typography>
+        </Box>
+
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: {
+              xs: '1fr',
+              xl: '1.15fr 0.85fr',
+            },
+            gap: 2,
+          }}
+        >
+          <Paper elevation={0} sx={sectionCardSx}>
+            <Stack spacing={2}>
+              <Stack direction="row" spacing={1.4} alignItems="center">
+                <Box sx={iconBoxSx('rgba(0,166,81,0.10)', '#00A651')}>
+                  <ShieldRoundedIcon />
+                </Box>
+
+                <Box sx={{ flex: 1 }}>
+                  <Typography sx={{ fontWeight: 800, color: '#1b2740', fontSize: '1rem' }}>
+                    Securite du compte
+                  </Typography>
+                  <Typography sx={{ mt: 0.35, fontSize: '0.88rem', color: '#72809a' }}>
+                    Reglages visibles pour le parcours de connexion et la protection du compte.
+                  </Typography>
+                </Box>
+
+                <Chip
+                  label={twoFactorEnabled ? '2FA activee' : '2FA desactivee'}
+                  size="small"
+                  sx={{
+                    bgcolor: twoFactorEnabled ? '#e6f7ee' : '#eef2f7',
+                    color: twoFactorEnabled ? '#1d8e63' : '#6b778c',
+                    fontWeight: 700,
+                  }}
+                />
+              </Stack>
+
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={twoFactorEnabled}
+                    onChange={handleToggleTwoFactor}
+                    color="success"
+                  />
+                }
+                label={
+                  <Box>
+                    <Typography sx={{ fontSize: '0.92rem', color: '#445169', fontWeight: 700 }}>
+                      Activer la verification a double facteur
+                    </Typography>
+                    <Typography sx={{ mt: 0.2, fontSize: '0.82rem', color: '#7b8798' }}>
+                      Si activee, l'utilisateur verra la page 2FA apres connexion.
+                    </Typography>
+                  </Box>
+                }
+                sx={{ m: 0, alignItems: 'flex-start' }}
+              />
+
+              <Alert severity="info" sx={{ borderRadius: '14px' }}>
+                Tant que le backend n&apos;est pas branche, cette option est simulee avec
+                `localStorage`.
+              </Alert>
+            </Stack>
+          </Paper>
+
+          <Paper elevation={0} sx={sectionCardSx}>
+            <Stack spacing={2}>
+              <Stack direction="row" spacing={1.4} alignItems="center">
+                <Box sx={iconBoxSx('rgba(59,130,246,0.10)', '#2563eb')}>
+                  <NotificationsActiveRoundedIcon />
+                </Box>
+
+                <Box sx={{ flex: 1 }}>
+                  <Typography sx={{ fontWeight: 800, color: '#1b2740', fontSize: '1rem' }}>
+                    Preferences
+                  </Typography>
+                  <Typography sx={{ mt: 0.35, fontSize: '0.88rem', color: '#72809a' }}>
+                    Reglages utilisateur visibles pour la demo de l&apos;interface.
+                  </Typography>
+                </Box>
+              </Stack>
+
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={emailNotificationsEnabled}
+                    onChange={handleToggleNotifications}
+                    color="primary"
+                  />
+                }
+                label={
+                  <Box>
+                    <Typography sx={{ fontSize: '0.92rem', color: '#445169', fontWeight: 700 }}>
+                      Notifications par e-mail
+                    </Typography>
+                    <Typography sx={{ mt: 0.2, fontSize: '0.82rem', color: '#7b8798' }}>
+                      Active les messages informatifs et les rappels de traitement.
+                    </Typography>
+                  </Box>
+                }
+                sx={{ m: 0, alignItems: 'flex-start' }}
+              />
+
+              <Chip
+                label={emailNotificationsEnabled ? 'Notifications actives' : 'Notifications coupees'}
+                size="small"
+                sx={{
+                  width: 'fit-content',
+                  bgcolor: emailNotificationsEnabled ? '#eaf2ff' : '#f3f4f6',
+                  color: emailNotificationsEnabled ? '#2563eb' : '#6b7280',
+                  fontWeight: 700,
+                }}
+              />
+            </Stack>
+          </Paper>
+
+          <Paper elevation={0} sx={sectionCardSx}>
+            <Stack spacing={2}>
+              <Stack direction="row" spacing={1.4} alignItems="center">
+                <Box sx={iconBoxSx('rgba(124,58,237,0.10)', '#7c3aed')}>
+                  <PersonOutlineRoundedIcon />
+                </Box>
+
+                <Box sx={{ flex: 1 }}>
+                  <Typography sx={{ fontWeight: 800, color: '#1b2740', fontSize: '1rem' }}>
+                    Profil de demonstration
+                  </Typography>
+                  <Typography sx={{ mt: 0.35, fontSize: '0.88rem', color: '#72809a' }}>
+                    Permet de tester la restriction d'acces a la gestion des roles.
+                  </Typography>
+                </Box>
+              </Stack>
+
+              <Select value={connectedUserRole} onChange={handleConnectedRoleChange} size="small">
+                <MenuItem value="DDRH">DDRH</MenuItem>
+                <MenuItem value="Employeur">Employeur</MenuItem>
+              </Select>
+
+              <Select value={connectedUserEmail} onChange={handleConnectedEmailChange} size="small">
+                {structureRecipients.map((recipient) => (
+                  <MenuItem key={recipient.id} value={recipient.email}>
+                    {recipient.manager} - {recipient.email}
+                  </MenuItem>
+                ))}
+              </Select>
+
+              <Chip
+                label={`Profil courant : ${connectedUserRole}`}
+                size="small"
+                sx={{
+                  width: 'fit-content',
+                  bgcolor: connectedUserRole === 'DDRH' ? '#efe7ff' : '#eaf2ff',
+                  color: connectedUserRole === 'DDRH' ? '#7c3aed' : '#2563eb',
+                  fontWeight: 700,
+                }}
+              />
+
+              <Chip
+                label={`Utilisateur courant : ${connectedUserEmail}`}
+                size="small"
+                sx={{
+                  width: 'fit-content',
+                  bgcolor: '#eef2f7',
+                  color: '#475569',
+                  fontWeight: 700,
+                }}
+              />
+            </Stack>
+          </Paper>
+        </Box>
+
+        <Paper elevation={0} sx={sectionCardSx}>
+          <Stack spacing={1.6}>
+            <Stack direction="row" spacing={1.4} alignItems="center">
+              <Box sx={iconBoxSx('rgba(249,115,22,0.10)', '#ea580c')}>
+                <TuneRoundedIcon />
+              </Box>
+
+              <Box>
+                <Typography sx={{ fontWeight: 800, color: '#1b2740', fontSize: '1rem' }}>
+                  Notes front-end
+                </Typography>
+                <Typography sx={{ mt: 0.35, fontSize: '0.88rem', color: '#72809a' }}>
+                  Ce bloc clarifie ce qui est deja pris en charge par le front et ce qui devra etre
+                  branche plus tard avec le backend.
+                </Typography>
+              </Box>
+            </Stack>
+
+            <Box
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' },
+                gap: 1.4,
+              }}
+            >
+              <Alert severity="success" sx={{ borderRadius: '14px' }}>
+                Parcours front deja disponible : login, erreurs, blocage, 2FA conditionnel,
+                mot de passe oublie, reinitialisation.
+              </Alert>
+
+              <Alert severity="warning" sx={{ borderRadius: '14px' }}>
+                A brancher plus tard : verification reelle du 2FA, expiration serveur, premier
+                login et changement obligatoire du mot de passe.
+              </Alert>
+            </Box>
+          </Stack>
+        </Paper>
+      </Box>
+    </MainLayout>
+  )
+}

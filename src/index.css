@@ -1,0 +1,47 @@
+:root {
+  --brand-green: #0d8a4f;
+  --brand-green-dark: #06663a;
+  --brand-red: #d9292f;
+  --brand-dark: #111111;
+  --text: #10311f;
+  --muted: #476857;
+  --border: rgba(13, 138, 79, 0.16);
+  --surface: #e6f7ee;
+  --surface-strong: #d6f1e1;
+  --card: rgba(245, 255, 249, 0.9);
+  --soft-shadow: 0 24px 50px rgba(8, 73, 40, 0.12);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  color: var(--text);
+  background: var(--surface);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  background: var(--surface);
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+#root {
+  min-height: 100vh;
+}
