@@ -16,10 +16,14 @@ import {
 } from '@mui/material'
 import { useEffect, useState } from 'react'
 import MainLayout from '../../components/layout/mainLayout'
-import { CONNECTED_USER_EMAIL_KEY, CONNECTED_USER_ROLE_KEY } from '../Users/users.data'
+import {
+  CONNECTED_USER_EMAIL_KEY,
+  CONNECTED_USER_ROLE_KEY,
+  getStoredUsers,
+  saveUsers,
+} from '../Users/users.data'
 import { structureRecipients } from '../Fiches/fiches.data'
 
-const TWO_FACTOR_STORAGE_KEY = 'twoFactorEnabled'
 const NOTIFICATIONS_STORAGE_KEY = 'emailNotificationsEnabled'
 
 const sectionCardSx = {
@@ -44,23 +48,36 @@ const iconBoxSx = (background, color) => ({
 
 export default function Parameters() {
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false)
+  const [twoFactorRequired, setTwoFactorRequired] = useState(false)
   const [emailNotificationsEnabled, setEmailNotificationsEnabled] = useState(true)
   const [connectedUserRole, setConnectedUserRole] = useState('DDRH')
   const [connectedUserEmail, setConnectedUserEmail] = useState('k.ziani@mobilis.dz')
 
   useEffect(() => {
-    setTwoFactorEnabled(localStorage.getItem(TWO_FACTOR_STORAGE_KEY) === 'true')
-
     const storedNotifications = localStorage.getItem(NOTIFICATIONS_STORAGE_KEY)
     setEmailNotificationsEnabled(storedNotifications !== 'false')
-    setConnectedUserRole(localStorage.getItem(CONNECTED_USER_ROLE_KEY) || 'DDRH')
-    setConnectedUserEmail(localStorage.getItem(CONNECTED_USER_EMAIL_KEY) || 'k.ziani@mobilis.dz')
+    const nextRole = localStorage.getItem(CONNECTED_USER_ROLE_KEY) || 'DDRH'
+    const nextEmail = localStorage.getItem(CONNECTED_USER_EMAIL_KEY) || 'k.ziani@mobilis.dz'
+    setConnectedUserRole(nextRole)
+    setConnectedUserEmail(nextEmail)
+
+    const user = getStoredUsers().find((item) => item.email === nextEmail)
+    setTwoFactorEnabled(Boolean(user?.twoFactorEnabled))
+    setTwoFactorRequired(Boolean(user?.twoFactorRequired))
   }, [])
 
   const handleToggleTwoFactor = (event) => {
     const checked = event.target.checked
+    const nextUsers = getStoredUsers().map((user) =>
+      user.email === connectedUserEmail
+        ? {
+            ...user,
+            twoFactorEnabled: checked || user.twoFactorRequired,
+          }
+        : user
+    )
+    saveUsers(nextUsers)
     setTwoFactorEnabled(checked)
-    localStorage.setItem(TWO_FACTOR_STORAGE_KEY, String(checked))
   }
 
   const handleToggleNotifications = (event) => {
@@ -79,6 +96,9 @@ export default function Parameters() {
     const value = event.target.value
     setConnectedUserEmail(value)
     localStorage.setItem(CONNECTED_USER_EMAIL_KEY, value)
+    const user = getStoredUsers().find((item) => item.email === value)
+    setTwoFactorEnabled(Boolean(user?.twoFactorEnabled))
+    setTwoFactorRequired(Boolean(user?.twoFactorRequired))
   }
 
   return (
@@ -134,11 +154,25 @@ export default function Parameters() {
                 </Box>
 
                 <Chip
-                  label={twoFactorEnabled ? '2FA activee' : '2FA desactivee'}
+                  label={
+                    twoFactorRequired
+                      ? '2FA obligatoire'
+                      : twoFactorEnabled
+                        ? '2FA activee'
+                        : '2FA desactivee'
+                  }
                   size="small"
                   sx={{
-                    bgcolor: twoFactorEnabled ? '#e6f7ee' : '#eef2f7',
-                    color: twoFactorEnabled ? '#1d8e63' : '#6b778c',
+                    bgcolor: twoFactorRequired
+                      ? '#efe7ff'
+                      : twoFactorEnabled
+                        ? '#e6f7ee'
+                        : '#eef2f7',
+                    color: twoFactorRequired
+                      ? '#7c3aed'
+                      : twoFactorEnabled
+                        ? '#1d8e63'
+                        : '#6b778c',
                     fontWeight: 700,
                   }}
                 />
@@ -150,6 +184,7 @@ export default function Parameters() {
                     checked={twoFactorEnabled}
                     onChange={handleToggleTwoFactor}
                     color="success"
+                    disabled={twoFactorRequired}
                   />
                 }
                 label={
@@ -159,6 +194,7 @@ export default function Parameters() {
                     </Typography>
                     <Typography sx={{ mt: 0.2, fontSize: '0.82rem', color: '#7b8798' }}>
                       Si activee, l'utilisateur verra la page 2FA apres connexion.
+                      {twoFactorRequired ? ' Cette option est obligatoire pour ce profil.' : ''}
                     </Typography>
                   </Box>
                 }

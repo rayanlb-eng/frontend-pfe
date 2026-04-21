@@ -12,17 +12,28 @@ import {
 import { useState } from 'react'
 import { Link as RouterLink } from 'react-router-dom'
 import BrandHeader from '../../components/auth/Brandheader'
+import { initialUsers } from '../Users/users.data'
 import { inputSx } from '../../theme/authstyles'
 
-const DEMO_EMAIL = 'admin@mobilis.dz'
+const DEMO_ACCOUNTS = [
+  {
+    identifier: 'admin',
+    email: 'admin@mobilis.dz',
+  },
+  ...initialUsers.map((user) => ({
+    identifier: user.email.split('@')[0],
+    email: user.email,
+  })),
+]
 
 export default function ForgotPasswordPage() {
-  const [email, setEmail] = useState('')
+  const [identifier, setIdentifier] = useState('')
+  const [sentToEmail, setSentToEmail] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
 
-  const isDisabled = !email.trim() || loading
+  const isDisabled = !identifier.trim() || loading
 
   const handleSubmit = async (event) => {
     event.preventDefault()
@@ -34,12 +45,20 @@ export default function ForgotPasswordPage() {
 
     await new Promise((resolve) => window.setTimeout(resolve, 900))
 
-    if (email.trim().toLowerCase() !== DEMO_EMAIL) {
+    const normalizedIdentifier = identifier.trim().toLowerCase()
+    const matchedAccount = DEMO_ACCOUNTS.find(
+      (account) =>
+        account.email.toLowerCase() === normalizedIdentifier ||
+        account.identifier.toLowerCase() === normalizedIdentifier
+    )
+
+    if (!matchedAccount) {
       setLoading(false)
       setError("Le compte n'existe pas ou n'est pas reconnu.")
       return
     }
 
+    setSentToEmail(matchedAccount.email)
     setLoading(false)
     setSuccess(true)
   }
@@ -81,7 +100,7 @@ export default function ForgotPasswordPage() {
 
         <Box component="form" onSubmit={handleSubmit} sx={{ display: 'grid', gap: 1.6 }}>
           <Alert severity="info" sx={{ borderRadius: '18px' }}>
-            Demo frontend : utilisez {DEMO_EMAIL}
+            Demo frontend : utilisez `admin`, `admin@mobilis.dz`, `k.ziani` ou `k.ziani@mobilis.dz`
           </Alert>
 
           {error ? (
@@ -97,7 +116,7 @@ export default function ForgotPasswordPage() {
               sx={{ borderRadius: '18px' }}
             >
               <Typography sx={{ fontSize: '0.88rem', fontWeight: 600 }}>
-                Un lien de reinitialisation a ete envoye a {email.trim()}.
+                Un lien temporaire de reinitialisation a ete envoye a {sentToEmail}.
               </Typography>
               <Typography sx={{ mt: 0.35, fontSize: '0.82rem' }}>
                 Pour la demo front, ouvrez directement le lien de test.
@@ -106,11 +125,11 @@ export default function ForgotPasswordPage() {
           ) : null}
 
           <TextField
-            label="Adresse e-mail professionnelle"
-            type="email"
-            placeholder="nom.prenom@mobilis.dz"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
+            label="Nom d'utilisateur ou e-mail"
+            type="text"
+            placeholder="admin ou nom.prenom@mobilis.dz"
+            value={identifier}
+            onChange={(event) => setIdentifier(event.target.value)}
             fullWidth
             sx={inputSx}
             disabled={loading}

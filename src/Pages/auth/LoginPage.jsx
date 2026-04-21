@@ -19,26 +19,14 @@ import PasswordField from '../../components/auth/PasswordField'
 import {
   CONNECTED_USER_EMAIL_KEY,
   CONNECTED_USER_ROLE_KEY,
-  initialUsers,
-} from '../Users/users.data'
+  getStoredUsers,
+  TRUSTED_2FA_DEVICES_KEY,
+  } from '../Users/users.data'
 import { inputSx } from '../../theme/authstyles'
 
 const MAX_ATTEMPTS = 3
 const BLOCK_DURATION_MS = 5 * 60 * 1000
 const DEMO_PASSWORD = 'Mobilis123'
-const TWO_FACTOR_STORAGE_KEY = 'twoFactorEnabled'
-const DEMO_ACCOUNTS = [
-  {
-    identifier: 'admin',
-    email: 'admin@mobilis.dz',
-    role: 'DDRH',
-  },
-  ...initialUsers.map((user) => ({
-    identifier: user.email.split('@')[0],
-    email: user.email,
-    role: user.accessRole,
-  })),
-]
 
 function formatRemainingTime(ms) {
   const totalSeconds = Math.max(0, Math.ceil(ms / 1000))
@@ -130,7 +118,25 @@ function LoginPage({ onLogin }) {
     await new Promise((resolve) => window.setTimeout(resolve, 900))
 
     const normalizedIdentifier = identifier.trim().toLowerCase()
-    const matchedAccount = DEMO_ACCOUNTS.find(
+    const storedUsers = getStoredUsers()
+    const demoAccounts = [
+      {
+        identifier: 'admin',
+        email: 'admin@mobilis.dz',
+        role: 'DDRH',
+        twoFactorEnabled: true,
+        twoFactorRequired: true,
+      },
+      ...storedUsers.map((user) => ({
+        identifier: user.email.split('@')[0],
+        email: user.email,
+        role: user.accessRole,
+        twoFactorEnabled: Boolean(user.twoFactorEnabled),
+        twoFactorRequired: Boolean(user.twoFactorRequired),
+      })),
+    ]
+
+    const matchedAccount = demoAccounts.find(
       (account) =>
         account.email.toLowerCase() === normalizedIdentifier ||
         account.identifier.toLowerCase() === normalizedIdentifier
@@ -156,9 +162,13 @@ function LoginPage({ onLogin }) {
       rememberMe,
     })
 
-    const isTwoFactorEnabled = localStorage.getItem(TWO_FACTOR_STORAGE_KEY) === 'true'
+    const trustedDevices = JSON.parse(localStorage.getItem(TRUSTED_2FA_DEVICES_KEY) || '{}')
+    const isTrustedDevice = Boolean(trustedDevices[matchedAccount.email])
+    const mustUseTwoFactor =
+      matchedAccount.twoFactorRequired ||
+      (matchedAccount.twoFactorEnabled && !isTrustedDevice)
 
-    if (!isTwoFactorEnabled) {
+    if (!mustUseTwoFactor) {
       localStorage.setItem('isAuthenticated', 'true')
       setLoading(false)
       navigate('/dashboard')
@@ -170,6 +180,7 @@ function LoginPage({ onLogin }) {
       JSON.stringify({
         email: matchedAccount.email,
         rememberMe,
+        twoFactorRequired: matchedAccount.twoFactorRequired,
       })
     )
 

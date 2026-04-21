@@ -5,6 +5,8 @@ import VerifiedUserRoundedIcon from '@mui/icons-material/VerifiedUserRounded'
 
 export const CONNECTED_USER_ROLE_KEY = 'connectedUserRole'
 export const CONNECTED_USER_EMAIL_KEY = 'connectedUserEmail'
+export const USERS_STORAGE_KEY = 'usersManagementState'
+export const TRUSTED_2FA_DEVICES_KEY = 'trustedTwoFactorDevices'
 
 export const stats = [
   {
@@ -47,6 +49,7 @@ export const initialUsers = [
     phone: '+213 666 10 20 30',
     status: 'Actif',
     twoFactorEnabled: true,
+    twoFactorRequired: true,
     badgeColor: '#1e9b6d',
     avatar: 'Y',
   },
@@ -59,6 +62,7 @@ export const initialUsers = [
     phone: '+213 666 44 28 17',
     status: 'Actif',
     twoFactorEnabled: true,
+    twoFactorRequired: false,
     badgeColor: '#2563eb',
     avatar: 'K',
   },
@@ -71,6 +75,7 @@ export const initialUsers = [
     phone: '+213 666 23 44 80',
     status: 'En attente',
     twoFactorEnabled: false,
+    twoFactorRequired: false,
     badgeColor: '#e08b2f',
     avatar: 'N',
   },
@@ -83,6 +88,7 @@ export const initialUsers = [
     phone: '+213 666 61 19 41',
     status: 'Inactif',
     twoFactorEnabled: false,
+    twoFactorRequired: false,
     badgeColor: '#db5c74',
     avatar: 'S',
   },
@@ -95,6 +101,7 @@ export const initialUsers = [
     phone: '+213 666 92 32 16',
     status: 'Actif',
     twoFactorEnabled: true,
+    twoFactorRequired: true,
     badgeColor: '#7c3aed',
     avatar: 'I',
   },
@@ -107,10 +114,20 @@ export const initialUsers = [
     phone: '+213 666 35 73 26',
     status: 'Actif',
     twoFactorEnabled: false,
+    twoFactorRequired: false,
     badgeColor: '#1e9b6d',
     avatar: 'M',
   },
 ]
+
+export function getStoredUsers() {
+  const raw = localStorage.getItem(USERS_STORAGE_KEY)
+  return raw ? JSON.parse(raw) : initialUsers
+}
+
+export function saveUsers(users) {
+  localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(users))
+}
 
 export const filters = {
   roles: ['Tous les roles', 'DDRH', 'Employeur'],

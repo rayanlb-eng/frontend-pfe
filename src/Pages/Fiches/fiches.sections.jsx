@@ -248,7 +248,14 @@ export function FichePreviewCard({ template }) {
 
 
 
-export function FichesTrackingTable({ rows, onManualResend, onReopen, onOpenForm }) {
+export function FichesTrackingTable({
+  rows,
+  onManualResend,
+  onReopen,
+  onOpenForm,
+  canManageStatuses = false,
+  onStatusChange,
+}) {
   return (
     <Paper elevation={0} sx={sectionPaperSx}>
       <Stack spacing={1.6}>
@@ -305,6 +312,21 @@ export function FichesTrackingTable({ rows, onManualResend, onReopen, onOpenForm
                       >
                         Ouvrir
                       </Button>
+
+                      {canManageStatuses && onStatusChange ? (
+                        <TextField
+                          select
+                          size="small"
+                          value={row.status}
+                          onChange={(event) => onStatusChange(row, event.target.value)}
+                          sx={{ minWidth: 130 }}
+                        >
+                          <MenuItem value="Envoyee">Envoyee</MenuItem>
+                          <MenuItem value="Consultee">Consultee</MenuItem>
+                          <MenuItem value="En cours">En cours</MenuItem>
+                          <MenuItem value="Completee">Completee</MenuItem>
+                        </TextField>
+                      ) : null}
 
                       {row.notificationStatus === 'Non notifie' && onManualResend ? (
                         <Button

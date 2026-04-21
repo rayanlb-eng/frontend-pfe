@@ -1,3 +1,4 @@
+import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded'
 import MailOutlineRoundedIcon from '@mui/icons-material/MailOutlineRounded'
 import PersonAddAlt1RoundedIcon from '@mui/icons-material/PersonAddAlt1Rounded'
 import PhoneRoundedIcon from '@mui/icons-material/PhoneRounded'
@@ -68,6 +69,8 @@ export function UsersToolbar({
   onRoleChange,
   onStatusChange,
   onDepartmentChange,
+  canManageRoles,
+  onAddUser,
 }) {
   return (
     <Stack {...toolbarWrapSx}>
@@ -94,6 +97,8 @@ export function UsersToolbar({
             size="small"
             startIcon={<PersonAddAlt1RoundedIcon />}
             sx={primaryButtonSx}
+            onClick={onAddUser}
+            disabled={!canManageRoles}
           >
             Nouvel utilisateur
           </Button>
@@ -150,7 +155,14 @@ export function UsersToolbar({
   )
 }
 
-export function UserCard({ user, canManageRoles, onEditRole, onRevokeAccess }) {
+export function UserCard({
+  user,
+  canManageRoles,
+  onEditRole,
+  onRevokeAccess,
+  onDeleteUser,
+  onToggleMandatory2FA,
+}) {
   return (
     <Paper elevation={0} sx={userCardSx}>
       <Stack spacing={1.4}>
@@ -195,6 +207,7 @@ export function UserCard({ user, canManageRoles, onEditRole, onRevokeAccess }) {
               }}
             >
               2FA: {user.twoFactorEnabled ? 'Activee' : 'Desactivee'}
+              {user.twoFactorRequired ? ' - Obligatoire' : ''}
             </Typography>
           </Box>
 
@@ -225,7 +238,7 @@ export function UserCard({ user, canManageRoles, onEditRole, onRevokeAccess }) {
             disabled={!canManageRoles}
             sx={userPrimaryActionSx(user.badgeColor)}
           >
-            Modifier le role
+            Modifier
           </Button>
 
           <Button
@@ -246,6 +259,26 @@ export function UserCard({ user, canManageRoles, onEditRole, onRevokeAccess }) {
             sx={userSecondaryActionSx}
           >
             Desactiver 2FA
+          </Button>
+
+          <Button
+            variant="outlined"
+            size="small"
+            onClick={() => onToggleMandatory2FA(user)}
+            disabled={!canManageRoles}
+            sx={userSecondaryActionSx}
+          >
+            {user.twoFactorRequired ? "Retirer l'obligation 2FA" : 'Rendre 2FA obligatoire'}
+          </Button>
+
+          <Button
+            variant="outlined"
+            size="small"
+            onClick={() => onDeleteUser(user)}
+            disabled={!canManageRoles}
+            sx={userSecondaryActionSx}
+          >
+            Supprimer
           </Button>
         </Stack>
       </Stack>
@@ -291,6 +324,189 @@ export function UserRoleDialog({ open, selectedUser, onClose, onSave }) {
           sx={{ textTransform: 'none', fontWeight: 700 }}
         >
           Enregistrer
+        </Button>
+      </DialogActions>
+    </Dialog>
+  )
+}
+
+export function UserFormDialog({ open, initialUser, onClose, onSave }) {
+  const [form, setForm] = useState({
+    name: '',
+    title: '',
+    accessRole: 'Employeur',
+    department: 'Formation',
+    email: '',
+    phone: '',
+    status: 'Actif',
+    twoFactorEnabled: false,
+    twoFactorRequired: false,
+    badgeColor: '#2563eb',
+    avatar: 'U',
+  })
+
+  useEffect(() => {
+    if (initialUser) {
+      setForm(initialUser)
+      return
+    }
+
+    setForm({
+      name: '',
+      title: '',
+      accessRole: 'Employeur',
+      department: 'Formation',
+      email: '',
+      phone: '',
+      status: 'Actif',
+      twoFactorEnabled: false,
+      twoFactorRequired: false,
+      badgeColor: '#2563eb',
+      avatar: 'U',
+    })
+  }, [initialUser, open])
+
+  const handleChange = (field, value) => {
+    setForm((currentForm) => ({ ...currentForm, [field]: value }))
+  }
+
+  const handleSubmit = () => {
+    const trimmedName = form.name.trim()
+    const trimmedEmail = form.email.trim()
+    if (!trimmedName || !trimmedEmail) return
+
+    onSave({
+      ...form,
+      name: trimmedName,
+      email: trimmedEmail,
+      twoFactorEnabled: form.twoFactorRequired ? true : form.twoFactorEnabled,
+      badgeColor: form.accessRole === 'DDRH' ? '#7c3aed' : '#2563eb',
+      avatar: trimmedName.charAt(0).toUpperCase(),
+    })
+  }
+
+  return (
+    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
+      <DialogTitle sx={{ fontWeight: 800 }}>
+        {initialUser ? "Modifier l'utilisateur" : 'Ajouter un utilisateur'}
+      </DialogTitle>
+      <DialogContent sx={{ pt: 1 }}>
+        <Box
+          sx={{
+            mt: 0.4,
+            display: 'grid',
+            gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)' },
+            gap: 1.4,
+          }}
+        >
+          <TextField
+            label="Nom complet"
+            value={form.name}
+            onChange={(event) => handleChange('name', event.target.value)}
+            fullWidth
+          />
+          <TextField
+            label="Fonction"
+            value={form.title}
+            onChange={(event) => handleChange('title', event.target.value)}
+            fullWidth
+          />
+          <TextField
+            label="E-mail"
+            value={form.email}
+            onChange={(event) => handleChange('email', event.target.value)}
+            fullWidth
+          />
+          <TextField
+            label="Telephone"
+            value={form.phone}
+            onChange={(event) => handleChange('phone', event.target.value)}
+            fullWidth
+          />
+          <TextField
+            select
+            label="Role"
+            value={form.accessRole}
+            onChange={(event) => handleChange('accessRole', event.target.value)}
+            fullWidth
+          >
+            <MenuItem value="DDRH">DDRH</MenuItem>
+            <MenuItem value="Employeur">Employeur</MenuItem>
+          </TextField>
+          <TextField
+            label="Service"
+            value={form.department}
+            onChange={(event) => handleChange('department', event.target.value)}
+            fullWidth
+          />
+          <TextField
+            select
+            label="Statut"
+            value={form.status}
+            onChange={(event) => handleChange('status', event.target.value)}
+            fullWidth
+          >
+            <MenuItem value="Actif">Actif</MenuItem>
+            <MenuItem value="En attente">En attente</MenuItem>
+            <MenuItem value="Inactif">Inactif</MenuItem>
+            <MenuItem value="Acces revoque">Acces revoque</MenuItem>
+          </TextField>
+          <TextField
+            select
+            label="2FA"
+            value={form.twoFactorEnabled ? 'oui' : 'non'}
+            onChange={(event) => handleChange('twoFactorEnabled', event.target.value === 'oui')}
+            fullWidth
+            disabled={form.twoFactorRequired}
+          >
+            <MenuItem value="oui">Activee</MenuItem>
+            <MenuItem value="non">Desactivee</MenuItem>
+          </TextField>
+          <TextField
+            select
+            label="2FA obligatoire"
+            value={form.twoFactorRequired ? 'oui' : 'non'}
+            onChange={(event) => handleChange('twoFactorRequired', event.target.value === 'oui')}
+            fullWidth
+          >
+            <MenuItem value="oui">Oui</MenuItem>
+            <MenuItem value="non">Non</MenuItem>
+          </TextField>
+        </Box>
+      </DialogContent>
+      <DialogActions sx={{ px: 3, pb: 2 }}>
+        <Button onClick={onClose} sx={{ textTransform: 'none', fontWeight: 700 }}>
+          Annuler
+        </Button>
+        <Button variant="contained" onClick={handleSubmit} sx={{ textTransform: 'none', fontWeight: 700 }}>
+          Enregistrer
+        </Button>
+      </DialogActions>
+    </Dialog>
+  )
+}
+
+export function UserDeleteDialog({ open, selectedUser, onClose, onConfirm }) {
+  return (
+    <Dialog open={open} onClose={onClose} fullWidth maxWidth="xs">
+      <DialogTitle sx={{ fontWeight: 800 }}>Supprimer l'utilisateur</DialogTitle>
+      <DialogContent sx={{ pt: 1 }}>
+        <Typography sx={{ fontSize: '0.92rem', color: '#5f6f86', mt: 0.5 }}>
+          Confirmer la suppression de <strong>{selectedUser?.name}</strong> ?
+        </Typography>
+      </DialogContent>
+      <DialogActions sx={{ px: 3, pb: 2 }}>
+        <Button onClick={onClose} sx={{ textTransform: 'none', fontWeight: 700 }}>
+          Annuler
+        </Button>
+        <Button
+          variant="contained"
+          color="error"
+          startIcon={<DeleteOutlineRoundedIcon />}
+          onClick={onConfirm}
+          sx={{ textTransform: 'none', fontWeight: 700 }}
+        >
+          Supprimer
         </Button>
       </DialogActions>
     </Dialog>

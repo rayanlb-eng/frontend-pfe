@@ -31,6 +31,7 @@ export default function ResetPasswordPage() {
       { label: '8 caracteres minimum', valid: newPassword.length >= 8 },
       { label: '1 lettre majuscule', valid: /[A-Z]/.test(newPassword) },
       { label: '1 chiffre minimum', valid: /\d/.test(newPassword) },
+      { label: '1 symbole minimum', valid: /[^A-Za-z0-9]/.test(newPassword) },
       {
         label: 'Confirmation identique',
         valid: !!confirmPassword && newPassword === confirmPassword,

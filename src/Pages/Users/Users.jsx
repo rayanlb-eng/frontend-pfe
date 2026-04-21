@@ -1,12 +1,25 @@
 import { Alert, Box, Paper, Stack, Typography } from '@mui/material'
 import { useEffect, useMemo, useState } from 'react'
 import MainLayout from '../../components/layout/mainLayout'
-import { CONNECTED_USER_ROLE_KEY, filters, initialUsers, stats } from './users.data'
-import { UserCard, UserRoleDialog, UsersStatsGrid, UsersToolbar } from './users.sections'
+import {
+  CONNECTED_USER_ROLE_KEY,
+  filters,
+  getStoredUsers,
+  saveUsers,
+  stats,
+} from './users.data'
+import {
+  UserCard,
+  UserDeleteDialog,
+  UserFormDialog,
+  UserRoleDialog,
+  UsersStatsGrid,
+  UsersToolbar,
+} from './users.sections'
 import { contentPaperSx, usersGridSx } from './users.styles'
 
 export default function Users() {
-  const [users, setUsers] = useState(initialUsers)
+  const [users, setUsers] = useState(getStoredUsers())
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedRole, setSelectedRole] = useState(filters.roles[0])
   const [selectedStatus, setSelectedStatus] = useState(filters.status[0])
@@ -14,12 +27,18 @@ export default function Users() {
   const [feedback, setFeedback] = useState('')
   const [selectedUser, setSelectedUser] = useState(null)
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [formDialogOpen, setFormDialogOpen] = useState(false)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [connectedUserRole, setConnectedUserRole] = useState('DDRH')
 
   useEffect(() => {
     const storedRole = localStorage.getItem(CONNECTED_USER_ROLE_KEY) || 'DDRH'
     setConnectedUserRole(storedRole)
   }, [])
+
+  useEffect(() => {
+    saveUsers(users)
+  }, [users])
 
   const canManageRoles = connectedUserRole === 'DDRH'
 
@@ -63,6 +82,56 @@ export default function Users() {
     if (!canManageRoles) return
     setSelectedUser(user)
     setDialogOpen(true)
+  }
+
+  const handleOpenAddUser = () => {
+    if (!canManageRoles) return
+    setSelectedUser(null)
+    setFormDialogOpen(true)
+  }
+
+  const handleOpenEditUser = (user) => {
+    if (!canManageRoles) return
+    setSelectedUser(user)
+    setFormDialogOpen(true)
+  }
+
+  const handleSaveUser = (nextUser) => {
+    setUsers((currentUsers) => {
+      const exists = selectedUser
+        ? currentUsers.some((user) => user.email === selectedUser.email)
+        : currentUsers.some((user) => user.email === nextUser.email)
+
+      if (!exists) {
+        return [...currentUsers, nextUser]
+      }
+
+      return currentUsers.map((user) =>
+        user.email === selectedUser.email ? { ...nextUser } : user
+      )
+    })
+
+    setFeedback(
+      selectedUser
+        ? `Les informations de ${nextUser.name} ont ete mises a jour.`
+        : `Le nouvel utilisateur ${nextUser.name} a ete ajoute.`
+    )
+    setFormDialogOpen(false)
+    setSelectedUser(null)
+  }
+
+  const handleOpenDeleteUser = (user) => {
+    if (!canManageRoles) return
+    setSelectedUser(user)
+    setDeleteDialogOpen(true)
+  }
+
+  const handleDeleteUser = () => {
+    if (!selectedUser) return
+    setUsers((currentUsers) => currentUsers.filter((user) => user.email !== selectedUser.email))
+    setFeedback(`${selectedUser.name} a ete supprime de la liste des utilisateurs.`)
+    setDeleteDialogOpen(false)
+    setSelectedUser(null)
   }
 
   const handleSaveRole = (nextRole) => {
@@ -116,6 +185,30 @@ export default function Users() {
     setFeedback(`L'acces de ${userToUpdate.name} a ete revoque.`)
   }
 
+  const handleToggleMandatory2FA = (userToUpdate) => {
+    if (!canManageRoles) return
+
+    const nextRequiredState = !userToUpdate.twoFactorRequired
+
+    setUsers((currentUsers) =>
+      currentUsers.map((user) =>
+        user.email === userToUpdate.email
+          ? {
+              ...user,
+              twoFactorRequired: nextRequiredState,
+              twoFactorEnabled: nextRequiredState ? true : user.twoFactorEnabled,
+            }
+          : user
+      )
+    )
+
+    setFeedback(
+      nextRequiredState
+        ? `Le 2FA est maintenant obligatoire pour ${userToUpdate.name}.`
+        : `Le caractere obligatoire du 2FA a ete retire pour ${userToUpdate.name}.`
+    )
+  }
+
   return (
     <MainLayout>
       <Box sx={{ display: 'grid', gap: 3 }}>
@@ -133,6 +226,8 @@ export default function Users() {
               onRoleChange={setSelectedRole}
               onStatusChange={setSelectedStatus}
               onDepartmentChange={setSelectedDepartment}
+              canManageRoles={canManageRoles}
+              onAddUser={handleOpenAddUser}
             />
 
             <Alert severity={canManageRoles ? 'info' : 'error'} sx={{ borderRadius: '14px' }}>
@@ -180,8 +275,10 @@ export default function Users() {
                     key={user.email}
                     user={user}
                     canManageRoles={canManageRoles}
-                    onEditRole={handleEditRole}
+                    onEditRole={handleOpenEditUser}
                     onRevokeAccess={handleRevokeAccess}
+                    onToggleMandatory2FA={handleToggleMandatory2FA}
+                    onDeleteUser={handleOpenDeleteUser}
                   />
                 ))}
               </Box>
@@ -195,6 +292,26 @@ export default function Users() {
                 setSelectedUser(null)
               }}
               onSave={handleSaveRole}
+            />
+
+            <UserFormDialog
+              open={formDialogOpen}
+              initialUser={selectedUser}
+              onClose={() => {
+                setFormDialogOpen(false)
+                setSelectedUser(null)
+              }}
+              onSave={handleSaveUser}
+            />
+
+            <UserDeleteDialog
+              open={deleteDialogOpen}
+              selectedUser={selectedUser}
+              onClose={() => {
+                setDeleteDialogOpen(false)
+                setSelectedUser(null)
+              }}
+              onConfirm={handleDeleteUser}
             />
           </Stack>
         </Paper>

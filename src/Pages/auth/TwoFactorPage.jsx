@@ -6,6 +6,8 @@ import {
   Box,
   Button,
   CircularProgress,
+  Checkbox,
+  FormControlLabel,
   Paper,
   TextField,
   Typography,
@@ -13,6 +15,7 @@ import {
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import BrandHeader from '../../components/auth/Brandheader'
+import { TRUSTED_2FA_DEVICES_KEY } from '../Users/users.data'
 import { inputSx } from '../../theme/authstyles'
 
 const MAX_2FA_ATTEMPTS = 3
@@ -32,11 +35,14 @@ export default function TwoFactorPage() {
   const [requiresNewCode, setRequiresNewCode] = useState(false)
   const [lostAccessHelp, setLostAccessHelp] = useState(false)
   const [currentOtp, setCurrentOtp] = useState(INITIAL_DEMO_OTP)
+  const [rememberDevice, setRememberDevice] = useState(false)
 
   const pendingAuth = useMemo(() => {
     const raw = sessionStorage.getItem('pending2FA')
     return raw ? JSON.parse(raw) : null
   }, [])
+
+  const isMandatoryProfile = Boolean(pendingAuth?.twoFactorRequired)
 
   useEffect(() => {
     if (!pendingAuth) {
@@ -68,6 +74,12 @@ export default function TwoFactorPage() {
         `Code temporaire invalide. Il vous reste ${MAX_2FA_ATTEMPTS - nextFailedAttempts} tentative(s).`
       )
       return
+    }
+
+    if (rememberDevice && !isMandatoryProfile) {
+      const trustedDevices = JSON.parse(localStorage.getItem(TRUSTED_2FA_DEVICES_KEY) || '{}')
+      trustedDevices[pendingAuth.email] = true
+      localStorage.setItem(TRUSTED_2FA_DEVICES_KEY, JSON.stringify(trustedDevices))
     }
 
     localStorage.setItem('isAuthenticated', 'true')
@@ -135,6 +147,15 @@ export default function TwoFactorPage() {
             </Typography>
           </Alert>
 
+          {isMandatoryProfile ? (
+            <Alert severity="warning" sx={{ borderRadius: '18px' }}>
+              <Typography sx={{ fontSize: '0.88rem', fontWeight: 600 }}>
+                Le 2FA est obligatoire pour ce profil. La memorisation de l&apos;appareil n&apos;est
+                pas disponible.
+              </Typography>
+            </Alert>
+          ) : null}
+
           {!requiresNewCode && failedAttempts > 0 ? (
             <Alert severity="warning" sx={{ borderRadius: '18px' }}>
               <Typography sx={{ fontSize: '0.88rem', fontWeight: 600 }}>
@@ -179,6 +200,30 @@ export default function TwoFactorPage() {
               onChange={(event) => setCode(event.target.value.replace(/\D/g, '').slice(0, 6))}
               sx={inputSx}
               disabled={loading}
+            />
+
+            <FormControlLabel
+              sx={{ m: 0 }}
+              control={
+                <Checkbox
+                  checked={rememberDevice}
+                  onChange={(event) => setRememberDevice(event.target.checked)}
+                  disabled={loading || isMandatoryProfile}
+                  sx={{
+                    color: '#00A651',
+                    '&.Mui-checked': {
+                      color: '#00A651',
+                    },
+                  }}
+                />
+              }
+              label={
+                <Typography sx={{ fontSize: '0.9rem', color: '#5D7367', fontWeight: 500 }}>
+                  {isMandatoryProfile
+                    ? "Memorisation indisponible pour ce profil"
+                    : 'Se souvenir de moi sur cet appareil'}
+                </Typography>
+              }
             />
 
             <Button

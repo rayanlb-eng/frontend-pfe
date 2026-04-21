@@ -2,6 +2,7 @@ import { Alert, Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, 
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import MainLayout from '../../components/layout/mainLayout'
+import { CONNECTED_USER_EMAIL_KEY, CONNECTED_USER_ROLE_KEY } from '../Users/users.data'
 import {
   ficheTemplates,
   getStoredTrackingRows,
@@ -26,6 +27,8 @@ function getCurrentDateLabel() {
 
 export default function FichesPage() {
   const navigate = useNavigate()
+  const [connectedUserRole, setConnectedUserRole] = useState('DDRH')
+  const [connectedUserEmail, setConnectedUserEmail] = useState('')
   const [selectedTemplateId, setSelectedTemplateId] = useState(ficheTemplates[0].id)
   const [selectedRecipientIds, setSelectedRecipientIds] = useState([])
   const [trackingRows, setTrackingRows] = useState(getStoredTrackingRows())
@@ -38,10 +41,29 @@ export default function FichesPage() {
     saveTrackingRows(trackingRows)
   }, [trackingRows])
 
+  useEffect(() => {
+    setConnectedUserRole(localStorage.getItem(CONNECTED_USER_ROLE_KEY) || 'DDRH')
+    setConnectedUserEmail(localStorage.getItem(CONNECTED_USER_EMAIL_KEY) || '')
+  }, [])
+
+  const canManageAllFiches = connectedUserRole === 'DDRH'
+
   const selectedTemplate = useMemo(
     () => ficheTemplates.find((template) => template.id === selectedTemplateId) || ficheTemplates[0],
     [selectedTemplateId]
   )
+
+  const visibleTrackingRows = useMemo(() => {
+    if (canManageAllFiches) {
+      return trackingRows
+    }
+
+    const recipientIds = structureRecipients
+      .filter((recipient) => recipient.email === connectedUserEmail)
+      .map((recipient) => recipient.id)
+
+    return trackingRows.filter((row) => recipientIds.includes(row.recipientId))
+  }, [canManageAllFiches, connectedUserEmail, trackingRows])
 
   const pushNotifications = (rows) => {
     const currentNotifications = getStoredNotifications()
@@ -127,6 +149,22 @@ export default function FichesPage() {
     navigate(`/fiches/form/${row.id}`)
   }
 
+  const handleStatusChange = (rowToUpdate, nextStatus) => {
+    if (!canManageAllFiches) return
+
+    setTrackingRows((currentRows) =>
+      currentRows.map((row) =>
+        row.id === rowToUpdate.id
+          ? {
+              ...row,
+              status: nextStatus,
+            }
+          : row
+      )
+    )
+    setFeedback(`Le statut de la fiche de ${rowToUpdate.manager} a ete mis a jour.`)
+  }
+
   const handleReopenForm = (rowToUpdate) => {
     setTrackingRows((currentRows) =>
       currentRows.map((row) =>
@@ -151,8 +189,9 @@ export default function FichesPage() {
             Fiches de formation
           </Typography>
           <Typography sx={{ mt: 0.55, fontSize: '0.92rem', color: '#72809a', maxWidth: 760 }}>
-            Module DDRH pour l'envoi des fiches d'expression des besoins en formation et le suivi
-            des structures destinataires.
+            {canManageAllFiches
+              ? "Module DDRH pour l'envoi des fiches d'expression des besoins en formation et le suivi des structures destinataires."
+              : 'Espace employeur : vous ne voyez que vos propres fiches de formation.'}
           </Typography>
         </Box>
 
@@ -183,28 +222,30 @@ export default function FichesPage() {
 
         <FichesStatsGrid stats={trackingStats} />
 
-        <Box sx={topGridSx}>
-          <FicheSendForm
-            templates={ficheTemplates}
-            recipients={structureRecipients}
-            selectedTemplateId={selectedTemplateId}
-            selectedRecipientIds={selectedRecipientIds}
-            onTemplateChange={setSelectedTemplateId}
-            onRecipientsChange={setSelectedRecipientIds}
-            onSubmit={handleSendFiches}
-            onMassFailure={handleMassFailure}
-            feedback={feedback}
-            massFailureAlert={massFailureAlert}
-          />
-
-          
-        </Box>
+        {canManageAllFiches ? (
+          <Box sx={topGridSx}>
+            <FicheSendForm
+              templates={ficheTemplates}
+              recipients={structureRecipients}
+              selectedTemplateId={selectedTemplateId}
+              selectedRecipientIds={selectedRecipientIds}
+              onTemplateChange={setSelectedTemplateId}
+              onRecipientsChange={setSelectedRecipientIds}
+              onSubmit={handleSendFiches}
+              onMassFailure={handleMassFailure}
+              feedback={feedback}
+              massFailureAlert={massFailureAlert}
+            />
+          </Box>
+        ) : null}
 
         <FichesTrackingTable
-          rows={trackingRows}
-          onManualResend={handleManualResend}
-          onReopen={handleReopenForm}
+          rows={visibleTrackingRows}
+          onManualResend={canManageAllFiches ? handleManualResend : undefined}
+          onReopen={canManageAllFiches ? handleReopenForm : undefined}
           onOpenForm={handleOpenForm}
+          canManageStatuses={canManageAllFiches}
+          onStatusChange={handleStatusChange}
         />
       </Box>
 
