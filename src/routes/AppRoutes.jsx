@@ -7,10 +7,17 @@ import Dashboard from '../Pages/Dashboard/dashboard'
 import AnalysePage from '../Pages/Analyse/AnalysePage'
 import FicheFormPage from '../Pages/Fiches/FicheFormPage'
 import FichesPage from '../Pages/Fiches/FichesPage'
+import MesFichesPage from '../Pages/Fiches/MesFichesPage'
 import Rapport from '../Pages/Rapport/Rapport'
 import Users from '../Pages/Users/Users'
 import Parametres from '../Pages/Parametres/Parameters'
+import { CONNECTED_USER_ROLE_KEY } from '../Pages/Users/users.data'
 import ProtectedRoute from './ProtectedRoute'
+
+function getFichesDefaultPath() {
+  const connectedRole = localStorage.getItem(CONNECTED_USER_ROLE_KEY) || 'DDRH'
+  return connectedRole === 'DDRH' ? '/fiches/gestion' : '/fiches/mes'
+}
 
 export default function AppRoutes() {
   return (
@@ -52,7 +59,25 @@ export default function AppRoutes() {
         path="/fiches"
         element={
           <ProtectedRoute>
+            <Navigate to={getFichesDefaultPath()} replace />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/fiches/gestion"
+        element={
+          <ProtectedRoute>
             <FichesPage />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/fiches/mes"
+        element={
+          <ProtectedRoute>
+            <MesFichesPage />
           </ProtectedRoute>
         }
       />

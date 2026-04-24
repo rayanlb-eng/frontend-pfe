@@ -52,6 +52,7 @@ export default function TwoFactorPage() {
 
   const isDisabled = !code.trim() || loading || requiresNewCode
 
+  // Valide le code courant et memorise l'appareil uniquement si le profil l'autorise.
   const handleVerify = async (event) => {
     event.preventDefault()
     if (isDisabled) return
@@ -88,6 +89,7 @@ export default function TwoFactorPage() {
     navigate('/dashboard', { replace: true })
   }
 
+  // Regenere un code temporaire et reinitialise le compteur d'erreurs.
   const handleResend = async () => {
     setResent(false)
     setLoading(true)

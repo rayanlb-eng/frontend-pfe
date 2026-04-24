@@ -41,10 +41,14 @@ function LoginPage({ onLogin }) {
   const [rememberMe, setRememberMe] = useState(true)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+
+  //si l’utilisateur recharge la page, le nombre d’essais ratés n’est pas perdu et le blocage temporaire est toujours appliqué si nécessaire.
+  
   const [failedAttempts, setFailedAttempts] = useState(() => {
     const value = Number(localStorage.getItem('loginFailedAttempts'))
     return Number.isNaN(value) ? 0 : value
   })
+
   const [blockedUntil, setBlockedUntil] = useState(() => {
     const value = Number(localStorage.getItem('loginBlockedUntil'))
     return Number.isNaN(value) ? 0 : value
@@ -55,6 +59,7 @@ function LoginPage({ onLogin }) {
   const isBlocked = blockedUntil > Date.now()
   const isDisabled = !identifier.trim() || !password.trim() || loading || isBlocked
 
+  // Gere le compte a rebours d'un compte temporairement bloque.
   useEffect(() => {
     if (!isBlocked) {
       setRemainingMs(0)
@@ -90,6 +95,7 @@ function LoginPage({ onLogin }) {
     [failedAttempts]
   )
 
+  // Incremente les echecs de connexion et applique le blocage au 3e essai.
   const handleFailedLogin = () => {
     const nextAttempts = failedAttempts + 1
     setFailedAttempts(nextAttempts)
@@ -108,6 +114,7 @@ function LoginPage({ onLogin }) {
     )
   }
 
+  // Valide les identifiants de demo, determine le profil et decide si la 2FA est requise.
   const handleSubmit = async (event) => {
     event.preventDefault()
     if (isDisabled) return
@@ -124,8 +131,8 @@ function LoginPage({ onLogin }) {
         identifier: 'admin',
         email: 'admin@mobilis.dz',
         role: 'DDRH',
-        twoFactorEnabled: true,
-        twoFactorRequired: true,
+        twoFactorEnabled: false,
+        twoFactorRequired: false,
       },
       ...storedUsers.map((user) => ({
         identifier: user.email.split('@')[0],
@@ -233,7 +240,7 @@ function LoginPage({ onLogin }) {
               Demo frontend
             </Typography>
             <Typography sx={{ mt: 0.2, fontSize: '0.84rem' }}>
-              Exemples: `admin` ou `admin@mobilis.dz` | `k.ziani` ou `k.ziani@mobilis.dz` | Mot de passe: {DEMO_PASSWORD}
+              Exemples: `admin` ou `admin@mobilis.dz` Mot de passe: {DEMO_PASSWORD}
             </Typography>
           </Alert>
 

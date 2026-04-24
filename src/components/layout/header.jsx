@@ -41,6 +41,14 @@ const pageMeta = {
     title: 'Fiches de formation',
     subtitle: "Envoi des fiches d'expression des besoins et suivi des structures",
   },
+  '/fiches/mes': {
+    title: 'Mes fiches',
+    subtitle: 'Suivi de vos fiches recues, brouillons et soumissions a la DDRH',
+  },
+  '/fiches/gestion': {
+    title: 'Fiches de formation',
+    subtitle: "Envoi des fiches d'expression des besoins et suivi des structures",
+  },
   '/analyse': {
     title: 'Analyse et priorisation',
     subtitle: 'Consolidation DDRH, regroupement des demandes et arbitrage budgetaire',
@@ -78,7 +86,9 @@ export default function Header() {
   const [connectedUserEmail, setConnectedUserEmail] = useState('k.ziani@mobilis.dz')
   const [notifications, setNotifications] = useState([])
   const currentPage =
-    location.pathname.startsWith('/fiches')
+    location.pathname.startsWith('/fiches/mes')
+      ? pageMeta['/fiches/mes']
+      : location.pathname.startsWith('/fiches')
       ? pageMeta['/fiches']
       : pageMeta[location.pathname] || pageMeta['/dashboard']
 
@@ -88,6 +98,7 @@ export default function Header() {
     setNotifications(getStoredNotifications())
   }, [location.pathname])
 
+  // Ne garde que les notifications utiles au profil courant.
   const visibleNotifications = useMemo(() => {
     if (connectedUserRole === 'DDRH') {
       return notifications.slice(0, 8)
@@ -100,6 +111,7 @@ export default function Header() {
 
   const unreadCount = visibleNotifications.filter((item) => !item.read).length
 
+  // Ouvre le menu ancre sur l'icone de notifications.
   const handleOpenNotifications = (event) => {
     setNotificationsAnchor(event.currentTarget)
   }
@@ -108,6 +120,7 @@ export default function Header() {
     setNotificationsAnchor(null)
   }
 
+  // Marque une notification comme lue puis ouvre la fiche cible si elle existe.
   const handleOpenNotification = (notification) => {
     const updatedNotifications = notifications.map((item) =>
       item.id === notification.id ? { ...item, read: true } : item
@@ -121,6 +134,7 @@ export default function Header() {
     }
   }
 
+  // Marque comme lues uniquement les notifications visibles par l'utilisateur courant.
   const handleMarkAllRead = () => {
     const updatedNotifications = notifications.map((item) =>
       connectedUserRole === 'DDRH' || item.recipientEmail === connectedUserEmail
@@ -141,7 +155,8 @@ export default function Header() {
         justifyContent: 'space-between',
         gap: 2,
         borderBottom: '1px solid #e7edf5',
-        background: '#f6f8fb',
+        background:
+          'linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(247,250,252,0.98) 100%)',
         position: 'sticky',
         top: 0,
         zIndex: 20,
@@ -175,7 +190,7 @@ export default function Header() {
           sx={{
             fontSize: { xs: '1.28rem', md: '1.65rem' },
             fontWeight: 800,
-            color: '#1b2740',
+            color: '#17324d',
             lineHeight: 1.08,
           }}
         >
@@ -186,7 +201,7 @@ export default function Header() {
           sx={{
             mt: 0.55,
             fontSize: '0.88rem',
-            color: '#72809a',
+            color: '#5f8a72',
             maxWidth: 640,
           }}
         >
@@ -210,17 +225,21 @@ export default function Header() {
             minWidth: 270,
             borderRadius: '14px',
             background: '#ffffff',
-            border: '1px solid #e3eaf3',
-            boxShadow: '0 8px 18px rgba(20, 31, 56, 0.04)',
+            border: '1px solid #cfe3d7',
+            boxShadow: '0 8px 18px rgba(15, 107, 59, 0.08)',
           }}
         >
-          <SearchRoundedIcon sx={{ color: '#8a97ad', fontSize: 20 }} />
+          <SearchRoundedIcon sx={{ color: '#0f6b3b', fontSize: 20 }} />
           <InputBase
             placeholder="Rechercher une fiche, un utilisateur..."
             sx={{
               flex: 1,
               fontSize: '0.92rem',
-              color: '#445169',
+              color: '#1f5138',
+              '& input::placeholder': {
+                color: '#78a08b',
+                opacity: 1,
+              },
             }}
           />
         </Box>
@@ -231,15 +250,15 @@ export default function Header() {
             width: 44,
             height: 44,
             background: '#ffffff',
-            border: '1px solid #e3eaf3',
-            boxShadow: '0 8px 18px rgba(20, 31, 56, 0.04)',
+            border: '1px solid #cfe3d7',
+            boxShadow: '0 8px 18px rgba(15, 107, 59, 0.08)',
             '&:hover': {
-              background: '#ffffff',
+              background: '#f4fbf7',
             },
           }}
         >
           <Badge color="error" badgeContent={unreadCount} max={9}>
-            <NotificationsNoneRoundedIcon sx={{ color: '#61718b' }} />
+            <NotificationsNoneRoundedIcon sx={{ color: '#0f6b3b' }} />
           </Badge>
         </IconButton>
 
@@ -252,16 +271,16 @@ export default function Header() {
             py: 0.62,
             borderRadius: '14px',
             background: '#ffffff',
-            border: '1px solid #e3eaf3',
-            boxShadow: '0 8px 18px rgba(20, 31, 56, 0.04)',
+            border: '1px solid #cfe3d7',
+            boxShadow: '0 8px 18px rgba(15, 107, 59, 0.08)',
           }}
         >
           <Avatar
             sx={{
               width: 38,
               height: 38,
-              bgcolor: '#eaf2ff',
-              color: '#3657d6',
+              bgcolor: '#e9f7ef',
+              color: '#0f6b3b',
               fontWeight: 800,
             }}
           >
@@ -273,7 +292,7 @@ export default function Header() {
               sx={{
                 fontSize: '0.86rem',
                 fontWeight: 700,
-                color: '#22314a',
+                color: '#1f5138',
                 lineHeight: 1.1,
               }}
             >
@@ -282,7 +301,7 @@ export default function Header() {
             <Typography
               sx={{
                 fontSize: '0.76rem',
-                color: '#7a879d',
+                color: '#78a08b',
                 mt: 0.15,
               }}
             >
@@ -290,7 +309,7 @@ export default function Header() {
             </Typography>
           </Box>
 
-          <KeyboardArrowDownRoundedIcon sx={{ color: '#8b98ab' }} />
+          <KeyboardArrowDownRoundedIcon sx={{ color: '#0f6b3b' }} />
         </Box>
       </Stack>
 

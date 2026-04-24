@@ -15,6 +15,7 @@ import BrandHeader from '../../components/auth/Brandheader'
 import { initialUsers } from '../Users/users.data'
 import { inputSx } from '../../theme/authstyles'
 
+// Liste de comptes de demo reconnus par le parcours "mot de passe oublie".
 const DEMO_ACCOUNTS = [
   {
     identifier: 'admin',
@@ -35,6 +36,7 @@ export default function ForgotPasswordPage() {
 
   const isDisabled = !identifier.trim() || loading
 
+  // Simule l'envoi d'un lien temporaire de reinitialisation pour un compte connu.
   const handleSubmit = async (event) => {
     event.preventDefault()
     if (isDisabled) return

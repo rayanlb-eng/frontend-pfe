@@ -26,6 +26,7 @@ export default function ResetPasswordPage() {
 
   const isExpired = token === 'expired'
 
+  // Calcule en direct les regles de securite du nouveau mot de passe.
   const rules = useMemo(
     () => [
       { label: '8 caracteres minimum', valid: newPassword.length >= 8 },
@@ -42,6 +43,7 @@ export default function ResetPasswordPage() {
 
   const isFormValid = rules.every((rule) => rule.valid)
 
+  // Simule la reinitialisation apres validation des regles et du token temporaire.
   const handleSubmit = async (event) => {
     event.preventDefault()
     if (!isFormValid || isExpired || loading) return

@@ -53,6 +53,7 @@ export default function Parameters() {
   const [connectedUserRole, setConnectedUserRole] = useState('DDRH')
   const [connectedUserEmail, setConnectedUserEmail] = useState('k.ziani@mobilis.dz')
 
+  // Recharge le profil courant et ses options locales de demonstration.
   useEffect(() => {
     const storedNotifications = localStorage.getItem(NOTIFICATIONS_STORAGE_KEY)
     setEmailNotificationsEnabled(storedNotifications !== 'false')
@@ -66,6 +67,7 @@ export default function Parameters() {
     setTwoFactorRequired(Boolean(user?.twoFactorRequired))
   }, [])
 
+  // Met a jour l'etat 2FA du profil courant tout en respectant l'obligation admin.
   const handleToggleTwoFactor = (event) => {
     const checked = event.target.checked
     const nextUsers = getStoredUsers().map((user) =>
@@ -80,18 +82,21 @@ export default function Parameters() {
     setTwoFactorEnabled(checked)
   }
 
+  // Persiste l'option de notifications e-mail dans le navigateur.
   const handleToggleNotifications = (event) => {
     const checked = event.target.checked
     setEmailNotificationsEnabled(checked)
     localStorage.setItem(NOTIFICATIONS_STORAGE_KEY, String(checked))
   }
 
+  // Change le role de demonstration pour tester les restrictions d'acces.
   const handleConnectedRoleChange = (event) => {
     const value = event.target.value
     setConnectedUserRole(value)
     localStorage.setItem(CONNECTED_USER_ROLE_KEY, value)
   }
 
+  // Change l'utilisateur courant pour tester les flux par destinataire et les notifications.
   const handleConnectedEmailChange = (event) => {
     const value = event.target.value
     setConnectedUserEmail(value)

@@ -1,24 +1,31 @@
-import { Alert, Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, Typography } from '@mui/material'
+import {
+  Alert,
+  Box,
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Typography,
+} from '@mui/material'
 import { useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Navigate, useNavigate } from 'react-router-dom'
 import MainLayout from '../../components/layout/mainLayout'
 import { CONNECTED_USER_EMAIL_KEY, CONNECTED_USER_ROLE_KEY } from '../Users/users.data'
 import {
   ficheTemplates,
-  getStoredTrackingRows,
-  getStoredNotifications,
-  saveNotifications,
-  saveTrackingRows,
-  structureRecipients,
-  trackingStats,
-} from './fiches.data'
-import {
   FichePreviewCard,
   FicheSendForm,
   FichesStatsGrid,
   FichesTrackingTable,
-} from './fiches.sections'
-import { topGridSx } from './fiches.styles'
+  getStoredNotifications,
+  getStoredTrackingRows,
+  saveNotifications,
+  saveTrackingRows,
+  structureRecipients,
+  topGridSx,
+  trackingStats,
+} from './fiches.data'
 
 function getCurrentDateLabel() {
   const now = new Date()
@@ -36,6 +43,7 @@ export default function FichesPage() {
   const [massFailureAlert, setMassFailureAlert] = useState('')
   const [errorReportOpen, setErrorReportOpen] = useState(false)
   const [scheduledRetry, setScheduledRetry] = useState('')
+  const [scheduledReminder, setScheduledReminder] = useState('')
 
   useEffect(() => {
     saveTrackingRows(trackingRows)
@@ -48,33 +56,44 @@ export default function FichesPage() {
 
   const canManageAllFiches = connectedUserRole === 'DDRH'
 
+  if (!canManageAllFiches) {
+    return <Navigate to="/fiches/mes" replace />
+  }
+
   const selectedTemplate = useMemo(
     () => ficheTemplates.find((template) => template.id === selectedTemplateId) || ficheTemplates[0],
     [selectedTemplateId]
   )
 
-  const visibleTrackingRows = useMemo(() => {
-    if (canManageAllFiches) {
-      return trackingRows
-    }
+  const pendingSubmissionRows = useMemo(
+    () => trackingRows.filter((row) => row.formStatus !== 'Soumise'),
+    [trackingRows]
+  )
 
+  const visibleTrackingRows = useMemo(() => {
+    if (canManageAllFiches) return trackingRows
     const recipientIds = structureRecipients
       .filter((recipient) => recipient.email === connectedUserEmail)
       .map((recipient) => recipient.id)
-
     return trackingRows.filter((row) => recipientIds.includes(row.recipientId))
   }, [canManageAllFiches, connectedUserEmail, trackingRows])
 
-  const pushNotifications = (rows) => {
+  const pushNotifications = (rows, type = 'fiche') => {
     const currentNotifications = getStoredNotifications()
     const nextNotifications = rows.map((row) => ({
       id: `notif-${row.id}-${Date.now()}`,
-      type: 'fiche',
+      type,
       recipientId: row.recipientId,
       recipientEmail:
         structureRecipients.find((item) => item.id === row.recipientId)?.email || '',
-      title: "Nouvelle fiche d'expression des besoins",
-      message: `${row.manager} a recu une nouvelle fiche pour ${row.structure}.`,
+      title:
+        type === 'relance'
+          ? 'Relance de soumission de fiche'
+          : "Nouvelle fiche d'expression des besoins",
+      message:
+        type === 'relance'
+          ? `${row.manager} doit encore soumettre sa fiche pour ${row.structure}.`
+          : `${row.manager} a recu une nouvelle fiche pour ${row.structure}.`,
       trackingId: row.id,
       read: false,
       createdAt: getCurrentDateLabel(),
@@ -103,9 +122,7 @@ export default function FichesPage() {
 
     setTrackingRows((currentRows) => [...nextRows, ...currentRows])
     pushNotifications(nextRows)
-    setFeedback(
-      `${nextRows.length} fiche(s) ont ete envoyees et le tableau de suivi a ete mis a jour.`
-    )
+    setFeedback(`${nextRows.length} fiche(s) ont ete envoyees aux directeurs selectionnes et le tableau de suivi a ete mis a jour.`)
     setSelectedRecipientIds([])
   }
 
@@ -145,22 +162,32 @@ export default function FichesPage() {
     setMassFailureAlert('')
   }
 
-  const handleOpenForm = (row) => {
-    navigate(`/fiches/form/${row.id}`)
-  }
+  const handleScheduleReminder = () => {
+    if (!canManageAllFiches || pendingSubmissionRows.length === 0) return
 
-  const handleStatusChange = (rowToUpdate, nextStatus) => {
-    if (!canManageAllFiches) return
+    const dateLabel = `${getCurrentDateLabel()} a 09:00`
+    const targetIds = new Set(pendingSubmissionRows.map((row) => row.id))
 
     setTrackingRows((currentRows) =>
       currentRows.map((row) =>
-        row.id === rowToUpdate.id
-          ? {
-              ...row,
-              status: nextStatus,
-            }
+        targetIds.has(row.id)
+          ? { ...row, notificationStatus: 'Relance planifiee', reminderScheduledAt: dateLabel }
           : row
       )
+    )
+    pushNotifications(pendingSubmissionRows, 'relance')
+    setScheduledReminder(dateLabel)
+    setFeedback(
+      `${pendingSubmissionRows.length} relance(s) automatiques ont ete programmees pour les fiches non soumises.`
+    )
+  }
+
+  const handleOpenForm = (row) => navigate(`/fiches/form/${row.id}`)
+
+  const handleStatusChange = (rowToUpdate, nextStatus) => {
+    if (!canManageAllFiches) return
+    setTrackingRows((currentRows) =>
+      currentRows.map((row) => (row.id === rowToUpdate.id ? { ...row, status: nextStatus } : row))
     )
     setFeedback(`Le statut de la fiche de ${rowToUpdate.manager} a ete mis a jour.`)
   }
@@ -169,12 +196,7 @@ export default function FichesPage() {
     setTrackingRows((currentRows) =>
       currentRows.map((row) =>
         row.id === rowToUpdate.id
-          ? {
-              ...row,
-              status: 'En cours',
-              formStatus: 'Brouillon',
-              reopened: true,
-            }
+          ? { ...row, status: 'En cours', formStatus: 'Brouillon', reopened: true }
           : row
       )
     )
@@ -184,28 +206,14 @@ export default function FichesPage() {
   return (
     <MainLayout>
       <Box sx={{ display: 'grid', gap: 3 }}>
-        <Box>
-          <Typography sx={{ fontSize: '1.6rem', fontWeight: 800, color: '#1b2740' }}>
-            Fiches de formation
-          </Typography>
-          <Typography sx={{ mt: 0.55, fontSize: '0.92rem', color: '#72809a', maxWidth: 760 }}>
-            {canManageAllFiches
-              ? "Module DDRH pour l'envoi des fiches d'expression des besoins en formation et le suivi des structures destinataires."
-              : 'Espace employeur : vous ne voyez que vos propres fiches de formation.'}
-          </Typography>
-        </Box>
 
         {massFailureAlert ? (
           <Alert
             severity="error"
             action={
               <Box sx={{ display: 'flex', gap: 1 }}>
-                <Button color="inherit" size="small" onClick={handleScheduleRetry}>
-                  Replanifier
-                </Button>
-                <Button color="inherit" size="small" onClick={() => setErrorReportOpen(true)}>
-                  Rapport d'erreur
-                </Button>
+                <Button color="inherit" size="small" onClick={handleScheduleRetry}>Replanifier</Button>
+                <Button color="inherit" size="small" onClick={() => setErrorReportOpen(true)}>Rapport d'erreur</Button>
               </Box>
             }
             sx={{ borderRadius: '14px' }}
@@ -214,9 +222,16 @@ export default function FichesPage() {
           </Alert>
         ) : null}
 
-        {scheduledRetry ? (
-          <Alert severity="info" sx={{ borderRadius: '14px' }}>
-            Nouvel envoi planifie pour le {scheduledRetry}.
+        {scheduledRetry ? <Alert severity="info" sx={{ borderRadius: '14px' }}>Nouvel envoi planifie pour le {scheduledRetry}.</Alert> : null}
+        {scheduledReminder ? <Alert severity="info" sx={{ borderRadius: '14px' }}>Relance automatique programmee pour le {scheduledReminder} sur les fiches non soumises.</Alert> : null}
+
+        {canManageAllFiches && pendingSubmissionRows.length > 0 ? (
+          <Alert
+            severity="warning"
+            sx={{ borderRadius: '14px' }}
+            action={<Button color="inherit" size="small" onClick={handleScheduleReminder}>Programmer la relance</Button>}
+          >
+            {pendingSubmissionRows.length} fiche(s) ne sont pas encore soumises. La DDRH peut programmer une relance automatique pour les responsables concernes.
           </Alert>
         ) : null}
 
@@ -236,6 +251,7 @@ export default function FichesPage() {
               feedback={feedback}
               massFailureAlert={massFailureAlert}
             />
+            
           </Box>
         ) : null}
 
@@ -243,9 +259,7 @@ export default function FichesPage() {
           rows={visibleTrackingRows}
           onManualResend={canManageAllFiches ? handleManualResend : undefined}
           onReopen={canManageAllFiches ? handleReopenForm : undefined}
-          onOpenForm={handleOpenForm}
-          canManageStatuses={canManageAllFiches}
-          onStatusChange={handleStatusChange}
+          showOpenAction={false}
         />
       </Box>
 
@@ -260,8 +274,7 @@ export default function FichesPage() {
               Impact : certains responsables n&apos;ont pas recu leur notification.
             </Typography>
             <Typography sx={{ color: '#475569', fontSize: '0.92rem' }}>
-              Action recommandee : replanifier l'envoi et relancer manuellement les structures non
-              notifiees.
+              Action recommandee : replanifier l'envoi et relancer manuellement les structures non notifiees.
             </Typography>
           </Box>
         </DialogContent>

@@ -25,12 +25,14 @@ export default function MainLayout({ children }) {
   const [warningOpen, setWarningOpen] = useState(false)
   const [countdown, setCountdown] = useState(WARNING_COUNTDOWN_SECONDS)
 
+  // Nettoie tous les timers pour éviter les doublons pendant la session.
   const clearTimers = useCallback(() => {
     window.clearTimeout(warningTimerRef.current)
     window.clearTimeout(logoutTimerRef.current)
     window.clearInterval(countdownIntervalRef.current)
   }, [])
 
+  // Centralise la deconnexion manuelle et automatique.
   const logoutUser = useCallback(() => {
     clearTimers()
     setWarningOpen(false)
@@ -39,6 +41,7 @@ export default function MainLayout({ children }) {
     navigate('/login', { replace: true })
   }, [clearTimers, navigate])
 
+  // Relance le cycle d'inactivite: alerte au bout de 30 min puis logout si aucune action.
   const scheduleInactivityTimers = useCallback(() => {
     clearTimers()
 
@@ -65,6 +68,7 @@ export default function MainLayout({ children }) {
   useEffect(() => {
     const activityEvents = ['mousemove', 'keydown', 'click', 'scroll']
 
+    // Toute activite utilisateur relance le compteur tant que l'alerte n'est pas affichee.
     const handleUserActivity = () => {
       if (!warningOpen) {
         scheduleInactivityTimers()
@@ -85,6 +89,7 @@ export default function MainLayout({ children }) {
     }
   }, [clearTimers, scheduleInactivityTimers, warningOpen])
 
+  // L'utilisateur confirme qu'il veut garder sa session ouverte.
   const handleContinueSession = () => {
     setWarningOpen(false)
     setCountdown(WARNING_COUNTDOWN_SECONDS)
