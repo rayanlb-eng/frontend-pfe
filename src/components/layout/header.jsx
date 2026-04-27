@@ -1,6 +1,7 @@
 import BoltRoundedIcon from '@mui/icons-material/BoltRounded'
 import CalendarMonthRoundedIcon from '@mui/icons-material/CalendarMonthRounded'
 import KeyboardArrowDownRoundedIcon from '@mui/icons-material/KeyboardArrowDownRounded'
+import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded'
 import MarkEmailReadRoundedIcon from '@mui/icons-material/MarkEmailReadRounded'
 import NotificationsNoneRoundedIcon from '@mui/icons-material/NotificationsNoneRounded'
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded'
@@ -15,6 +16,7 @@ import {
   Menu,
   MenuItem,
   Stack,
+  Tooltip,
   Typography,
 } from '@mui/material'
 import { useEffect, useMemo, useState } from 'react'
@@ -26,7 +28,7 @@ import {
 import {
   getStoredNotifications,
   saveNotifications,
-} from '../../Pages/Fiches/fiches.data'
+} from '../../Pages/Fiches/data/storage'
 
 const pageMeta = {
   '/dashboard': {
@@ -82,21 +84,33 @@ export default function Header() {
   const location = useLocation()
   const navigate = useNavigate()
   const [notificationsAnchor, setNotificationsAnchor] = useState(null)
+  const [profileAnchor, setProfileAnchor] = useState(null)
   const [connectedUserRole, setConnectedUserRole] = useState('DDRH')
   const [connectedUserEmail, setConnectedUserEmail] = useState('k.ziani@mobilis.dz')
   const [notifications, setNotifications] = useState([])
-  const currentPage =
-    location.pathname.startsWith('/fiches/mes')
-      ? pageMeta['/fiches/mes']
-      : location.pathname.startsWith('/fiches')
-      ? pageMeta['/fiches']
-      : pageMeta[location.pathname] || pageMeta['/dashboard']
 
   useEffect(() => {
     setConnectedUserRole(localStorage.getItem(CONNECTED_USER_ROLE_KEY) || 'DDRH')
     setConnectedUserEmail(localStorage.getItem(CONNECTED_USER_EMAIL_KEY) || 'k.ziani@mobilis.dz')
     setNotifications(getStoredNotifications())
   }, [location.pathname])
+
+  const currentPage =
+    location.pathname === '/dashboard'
+      ? connectedUserRole === 'DDRH'
+        ? {
+            title: 'Dashboard DDRH',
+            subtitle: 'Pilotage de la collecte, des analyses et des consolidations DDRH',
+          }
+        : {
+            title: 'Dashboard employeur',
+            subtitle: 'Suivi de vos fiches, brouillons, soumissions et relances DDRH',
+          }
+      : location.pathname.startsWith('/fiches/mes')
+      ? pageMeta['/fiches/mes']
+      : location.pathname.startsWith('/fiches')
+      ? pageMeta['/fiches']
+      : pageMeta[location.pathname] || pageMeta['/dashboard']
 
   // Ne garde que les notifications utiles au profil courant.
   const visibleNotifications = useMemo(() => {
@@ -110,6 +124,7 @@ export default function Header() {
   }, [connectedUserEmail, connectedUserRole, notifications])
 
   const unreadCount = visibleNotifications.filter((item) => !item.read).length
+  const userInitial = (connectedUserEmail?.charAt(0) || 'R').toUpperCase()
 
   // Ouvre le menu ancre sur l'icone de notifications.
   const handleOpenNotifications = (event) => {
@@ -118,6 +133,14 @@ export default function Header() {
 
   const handleCloseNotifications = () => {
     setNotificationsAnchor(null)
+  }
+
+  const handleOpenProfile = (event) => {
+    setProfileAnchor(event.currentTarget)
+  }
+
+  const handleCloseProfile = () => {
+    setProfileAnchor(null)
   }
 
   // Marque une notification comme lue puis ouvre la fiche cible si elle existe.
@@ -143,6 +166,15 @@ export default function Header() {
     )
     setNotifications(updatedNotifications)
     saveNotifications(updatedNotifications)
+  }
+
+  const handleLogout = () => {
+    localStorage.removeItem('isAuthenticated')
+    localStorage.removeItem(CONNECTED_USER_ROLE_KEY)
+    localStorage.removeItem(CONNECTED_USER_EMAIL_KEY)
+    sessionStorage.removeItem('pending2FA')
+    setProfileAnchor(null)
+    navigate('/login', { replace: true })
   }
 
   return (
@@ -262,7 +294,9 @@ export default function Header() {
           </Badge>
         </IconButton>
 
+        <Tooltip title="Profil" arrow>
         <Box
+          onClick={handleOpenProfile}
           sx={{
             display: 'flex',
             alignItems: 'center',
@@ -273,6 +307,12 @@ export default function Header() {
             background: '#ffffff',
             border: '1px solid #cfe3d7',
             boxShadow: '0 8px 18px rgba(15, 107, 59, 0.08)',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+            '&:hover': {
+              background: '#f4fbf7',
+              borderColor: '#b9d9c8',
+            },
           }}
         >
           <Avatar
@@ -284,7 +324,7 @@ export default function Header() {
               fontWeight: 800,
             }}
           >
-            R
+            {userInitial}
           </Avatar>
 
           <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
@@ -311,6 +351,7 @@ export default function Header() {
 
           <KeyboardArrowDownRoundedIcon sx={{ color: '#0f6b3b' }} />
         </Box>
+        </Tooltip>
       </Stack>
 
       <Menu
@@ -387,6 +428,43 @@ export default function Header() {
             </MenuItem>
           ))
         )}
+      </Menu>
+
+      <Menu
+        anchorEl={profileAnchor}
+        open={Boolean(profileAnchor)}
+        onClose={handleCloseProfile}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+        PaperProps={{
+          sx: {
+            minWidth: 220,
+            borderRadius: '16px',
+            mt: 1,
+            p: 0.6,
+          },
+        }}
+      >
+        <Box sx={{ px: 1.2, py: 0.8 }}>
+          <Typography sx={{ fontWeight: 800, color: '#1f5138', fontSize: '0.92rem' }}>
+            {connectedUserRole === 'DDRH' ? 'Responsable' : 'Employeur'}
+          </Typography>
+          <Typography sx={{ color: '#78a08b', fontSize: '0.78rem', mt: 0.2 }}>
+            {connectedUserEmail}
+          </Typography>
+        </Box>
+        <MenuItem
+          onClick={handleLogout}
+          sx={{
+            borderRadius: '12px',
+            fontWeight: 700,
+            color: '#b42318',
+            gap: 1,
+          }}
+        >
+          <LogoutRoundedIcon sx={{ fontSize: 18 }} />
+          Déconnecter
+        </MenuItem>
       </Menu>
     </Box>
   )

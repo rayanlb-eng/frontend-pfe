@@ -22,24 +22,39 @@ export default function StatCard({
         boxShadow: '0 10px 20px rgba(20, 31, 56, 0.10)',
         transition: 'transform 0.2s ease, box-shadow 0.2s ease',
         '&:hover': {
-          transform: 'translateY(-2px)',
+          transform: 'translateY(-4px) scale(1.01)',
           boxShadow: '0 14px 26px rgba(20, 31, 56, 0.14)',
         },
+        '&::before': {
+  content: '""',
+  position: 'absolute',
+  inset: 0,
+  background: 'linear-gradient(120deg, rgba(255,255,255,0.15), transparent)',
+  opacity: 0.6,
+},
       }}
     >
       <Box
-        sx={{
-          position: 'absolute',
-          top: 10,
-          right: 12,
-          color: 'rgba(255,255,255,0.20)',
-          '& svg': {
-            fontSize: 32,
-          },
-        }}
-      >
-        {icon}
-      </Box>
+  sx={{
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    width: 42,
+    height: 42,
+    borderRadius: '12px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    background: 'rgba(255,255,255,0.15)',
+    backdropFilter: 'blur(6px)',
+    color: '#fff',
+    '& svg': {
+      fontSize: 22,
+    },
+  }}
+>
+  {icon}
+</Box>
 
       <Box sx={{ position: 'relative', zIndex: 1 }}>
         <Typography
@@ -56,8 +71,9 @@ export default function StatCard({
 
         <Typography
           sx={{
-            fontSize: '2.1rem',
-            fontWeight: 800,
+            fontSize: '2.4rem',
+fontWeight: 900,
+letterSpacing: '-0.5px',
             lineHeight: 1,
             mt: 1.3,
             color: '#fff',

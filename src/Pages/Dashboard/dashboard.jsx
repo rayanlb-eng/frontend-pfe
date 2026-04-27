@@ -1,7 +1,4 @@
-import CheckCircleRoundedIcon from '@mui/icons-material/CheckCircleRounded'
-import ErrorOutlineRoundedIcon from '@mui/icons-material/ErrorOutlineRounded'
-import WarningAmberRoundedIcon from '@mui/icons-material/WarningAmberRounded'
-import { Box, Button, Chip, LinearProgress, Paper, Stack, Typography } from '@mui/material'
+import { Box, Button, Chip, Paper, Stack, Typography } from '@mui/material'
 import {
   Bar,
   BarChart,
@@ -18,115 +15,61 @@ import {
   YAxis,
 } from 'recharts'
 import MainLayout from '../../components/layout/mainLayout'
+import ChartCard from '../../components/ui/chartCard'
+import StatCard from '../../components/ui/statcard'
+import { CONNECTED_USER_EMAIL_KEY, CONNECTED_USER_ROLE_KEY } from '../Users/users.data'
+import DashboardEmp from './dashboardEmp'
 import {
-  alertItemSx,
-  alerts,
-  alertsListSx,
-  campaignCardSx,
-  campaignSteps,
+  buildDdrhDashboardModel,
+  buildEmployerDashboardModel,
   dashboardMainGridSx,
   dashboardSecondaryGridSx,
   dashboardSurfaceSx,
-  departmentTrainingData,
-  exportGhostButtonSx,
-  exportActions,
-  exportPanelSx,
-  exportPrimaryButtonSx,
   floatingIconSx,
-  quickActions,
   quickActionCardSx,
   quickActionsGridSx,
-  recentFiches,
   recentItemSx,
   recentListSx,
-  stats,
-  statusData,
+  tooltipStyle,
   whiteActionButtonSx,
-  yearlyTrainingData,
 } from './dashboard.data'
-import ChartCard from '../../components/ui/chartCard'
-import StatCard from '../../components/ui/statcard'
-
-const tooltipStyle = {
-  contentStyle: {
-    borderRadius: 12,
-    border: '1px solid #e6ebf2',
-    background: 'rgba(255,255,255,0.98)',
-    boxShadow: '0 14px 28px rgba(20, 31, 56, 0.10)',
-  },
-  labelStyle: { color: '#516078', fontWeight: 700 },
-  itemStyle: { color: '#18263f' },
-}
 
 export default function Dashboard() {
+  const connectedRole = localStorage.getItem(CONNECTED_USER_ROLE_KEY) || 'DDRH'
+  const connectedEmail =
+    localStorage.getItem(CONNECTED_USER_EMAIL_KEY) || 'k.ziani@mobilis.dz'
+
+  const dashboardModel =
+    connectedRole === 'DDRH'
+      ? buildDdrhDashboardModel()
+      : buildEmployerDashboardModel(connectedEmail)
+
+  if (dashboardModel.role === 'EMPLOYEUR') {
+    return <DashboardEmp dashboardModel={dashboardModel} />
+  }
+
   return (
     <MainLayout>
       <Box sx={{ display: 'grid', gap: 3 }}>
-        <DashboardStatsGrid stats={stats} />
+        <DashboardStatsGrid stats={dashboardModel.stats} />
 
         <Paper elevation={0} sx={dashboardSurfaceSx}>
           <Stack spacing={2.4}>
-            <DashboardChartsSection
-              yearlyTrainingData={yearlyTrainingData}
-              statusData={statusData}
-              departmentTrainingData={departmentTrainingData}
-            />
+            <DashboardChartsSection charts={dashboardModel.charts} />
 
             <Box sx={dashboardMainGridSx}>
-              <DashboardCampaignPanel campaignSteps={campaignSteps} />
-              <DashboardAlertsPanel alerts={alerts} />
+              <DashboardTableCard block={dashboardModel.tables.latestSubmitted} />
+              <DashboardTableCard block={dashboardModel.tables.pendingStructures} />
             </Box>
 
             <Box sx={dashboardSecondaryGridSx}>
-              <DashboardRecentFiches recentFiches={recentFiches} />
-              <DashboardQuickActions quickActions={quickActions} />
+              <DashboardTableCard block={dashboardModel.tables.topTrainings} />
+              <DashboardQuickActions quickBlock={dashboardModel.quick} />
             </Box>
           </Stack>
         </Paper>
-
       </Box>
     </MainLayout>
-  )
-}
-
-function AlertChip({ type }) {
-  const styles = {
-    warning: {
-      bg: '#fff1df',
-      color: '#b96d12',
-      label: 'Alerte',
-      icon: <WarningAmberRoundedIcon sx={{ fontSize: 16 }} />,
-    },
-    danger: {
-      bg: '#ffe5ea',
-      color: '#c3455b',
-      label: 'Critique',
-      icon: <ErrorOutlineRoundedIcon sx={{ fontSize: 16 }} />,
-    },
-    success: {
-      bg: '#e6f7ee',
-      color: '#1d8e63',
-      label: 'Info',
-      icon: <CheckCircleRoundedIcon sx={{ fontSize: 16 }} />,
-    },
-  }
-
-  const style = styles[type]
-
-  return (
-    <Chip
-      icon={style.icon}
-      label={style.label}
-      size="small"
-      sx={{
-        bgcolor: style.bg,
-        color: style.color,
-        fontWeight: 700,
-        '& .MuiChip-icon': {
-          color: style.color,
-        },
-      }}
-    />
   )
 }
 
@@ -158,11 +101,7 @@ function DashboardStatsGrid({ stats }) {
   )
 }
 
-function DashboardChartsSection({
-  yearlyTrainingData,
-  statusData,
-  departmentTrainingData,
-}) {
+function DashboardChartsSection({ charts }) {
   return (
     <>
       <Box
@@ -175,19 +114,16 @@ function DashboardChartsSection({
           gap: 2,
         }}
       >
-        <ChartCard
-          title="Employes en formation par annee"
-          subtitle="Evolution annuelle des besoins recenses"
-        >
+        <ChartCard title={charts.lineTitle} subtitle={charts.lineSubtitle}>
           <ResponsiveContainer width="100%" height={285}>
-            <LineChart data={yearlyTrainingData}>
+            <LineChart data={charts.lineData}>
               <CartesianGrid stroke="#e7edf5" vertical={false} />
-              <XAxis dataKey="year" stroke="#6f7d95" />
-              <YAxis stroke="#6f7d95" />
+              <XAxis dataKey={charts.lineXAxisKey} stroke="#6f7d95" />
+              <YAxis stroke="#6f7d95" allowDecimals={false} />
               <Tooltip {...tooltipStyle} />
               <Line
                 type="monotone"
-                dataKey="employees"
+                dataKey={charts.lineDataKey}
                 stroke="#4b6bfb"
                 strokeWidth={3}
                 dot={{ r: 4, fill: '#4b6bfb' }}
@@ -197,11 +133,11 @@ function DashboardChartsSection({
           </ResponsiveContainer>
         </ChartCard>
 
-        <ChartCard title="Etat des demandes" subtitle="Vue globale des statuts actuels">
+        <ChartCard title={charts.pieTitle} subtitle={charts.pieSubtitle}>
           <ResponsiveContainer width="100%" height={285}>
             <PieChart>
               <Pie
-                data={statusData}
+                data={charts.pieData}
                 cx="50%"
                 cy="50%"
                 innerRadius={68}
@@ -209,7 +145,7 @@ function DashboardChartsSection({
                 dataKey="value"
                 paddingAngle={4}
               >
-                {statusData.map((entry) => (
+                {charts.pieData.map((entry) => (
                   <Cell key={entry.name} fill={entry.color} />
                 ))}
               </Pie>
@@ -220,22 +156,27 @@ function DashboardChartsSection({
         </ChartCard>
       </Box>
 
-      <ChartCard
-        title="Repartition par departement"
-        subtitle="Volume de besoins exprimes par structure"
-      >
+      <ChartCard title={charts.barTitle} subtitle={charts.barSubtitle}>
         <ResponsiveContainer width="100%" height={285}>
-          <BarChart data={departmentTrainingData}>
+          <BarChart data={charts.barData}>
             <CartesianGrid stroke="#e7edf5" vertical={false} />
-            <XAxis dataKey="department" stroke="#6f7d95" />
-            <YAxis stroke="#6f7d95" />
+            <XAxis
+              dataKey={charts.barXAxisKey}
+              stroke="#6f7d95"
+              interval={0}
+              angle={charts.barData.length > 3 ? -12 : 0}
+              textAnchor={charts.barData.length > 3 ? 'end' : 'middle'}
+              height={charts.barData.length > 3 ? 56 : 30}
+            />
+            <YAxis stroke="#6f7d95" allowDecimals={false} />
             <Tooltip {...tooltipStyle} />
-            <Bar dataKey="employees" radius={[9, 9, 0, 0]}>
-              <Cell fill="#4b6bfb" />
-              <Cell fill="#1e9b6d" />
-              <Cell fill="#e08b2f" />
-              <Cell fill="#db5c74" />
-              <Cell fill="#7b61ff" />
+            <Bar dataKey={charts.barDataKey} radius={[9, 9, 0, 0]}>
+              {charts.barData.map((entry, index) => (
+                <Cell
+                  key={`${entry.label}-${index}`}
+                  fill={['#4b6bfb', '#1e9b6d', '#e08b2f', '#db5c74', '#7b61ff'][index % 5]}
+                />
+              ))}
             </Bar>
           </BarChart>
         </ResponsiveContainer>
@@ -244,130 +185,34 @@ function DashboardChartsSection({
   )
 }
 
-function DashboardCampaignPanel({ campaignSteps }) {
+function DashboardTableCard({ block }) {
   return (
-    <ChartCard
-      title="Suivi de campagne"
-      subtitle="Avancement des etapes de la campagne"
-    >
-      <Stack spacing={1.2}>
-        {campaignSteps.map((step) => (
-          <Paper key={step.title} elevation={0} sx={campaignCardSx}>
-            <Stack spacing={1}>
-              <Stack
-                direction="row"
-                justifyContent="space-between"
-                alignItems="center"
-                spacing={1}
-              >
-                <Box>
-                  <Typography sx={{ fontWeight: 800, color: '#1b2740', fontSize: '0.96rem' }}>
-                    {step.title}
-                  </Typography>
-                  <Typography sx={{ fontSize: '0.84rem', color: '#72809a', mt: 0.35 }}>
-                    {step.subtitle}
-                  </Typography>
-                </Box>
-
-                <Chip
-                  label={step.chip}
-                  size="small"
-                  sx={{
-                    bgcolor: `${step.color}18`,
-                    color: step.color,
-                    fontWeight: 700,
-                  }}
-                />
-              </Stack>
-
-              <LinearProgress
-                variant="determinate"
-                value={step.progress}
-                sx={{
-                  height: 8,
-                  borderRadius: 999,
-                  bgcolor: '#eef2f7',
-                  '& .MuiLinearProgress-bar': {
-                    borderRadius: 999,
-                    bgcolor: step.color,
-                  },
-                }}
-              />
-
-              <Typography sx={{ fontSize: '0.8rem', color: '#72809a', fontWeight: 700 }}>
-                {step.progress}% d'avancement
-              </Typography>
-            </Stack>
-          </Paper>
-        ))}
-      </Stack>
-    </ChartCard>
-  )
-}
-
-function DashboardAlertsPanel({ alerts }) {
-  return (
-    <ChartCard title="Alertes et suivi" subtitle="Elements a surveiller au quotidien">
-      <Stack sx={alertsListSx}>
-        {alerts.map((alert) => (
-          <Paper key={alert.title} elevation={0} sx={alertItemSx}>
-            <Stack
-              direction="row"
-              alignItems="center"
-              justifyContent="space-between"
-              spacing={1}
-            >
-              <Typography
-                sx={{
-                  fontSize: '0.9rem',
-                  color: '#32415a',
-                  fontWeight: 600,
-                }}
-              >
-                {alert.title}
-              </Typography>
-              <AlertChip type={alert.type} />
-            </Stack>
-          </Paper>
-        ))}
-      </Stack>
-    </ChartCard>
-  )
-}
-
-function DashboardRecentFiches({ recentFiches }) {
-  return (
-    <ChartCard title="Dernieres fiches recues" subtitle="Derniers besoins remontes par les structures">
+    <ChartCard title={block.title} subtitle={block.subtitle}>
       <Stack sx={recentListSx}>
-        {recentFiches.map((fiche) => (
-          <Paper key={`${fiche.structure}-${fiche.submittedAt}`} elevation={0} sx={recentItemSx}>
+        {block.items.map((item) => (
+          <Paper key={`${block.title}-${item.title}-${item.meta}`} elevation={0} sx={recentItemSx}>
             <Stack spacing={0.8}>
-              <Stack
-                direction="row"
-                justifyContent="space-between"
-                alignItems="center"
-                spacing={1}
-              >
+              <Stack direction="row" justifyContent="space-between" alignItems="center" spacing={1}>
                 <Typography sx={{ fontWeight: 800, color: '#1b2740', fontSize: '0.95rem' }}>
-                  {fiche.structure}
+                  {item.title}
                 </Typography>
 
                 <Chip
-                  label={fiche.status}
+                  label={item.status}
                   size="small"
                   sx={{
-                    bgcolor: `${fiche.color}18`,
-                    color: fiche.color,
+                    bgcolor: `${item.color}18`,
+                    color: item.color,
                     fontWeight: 700,
                   }}
                 />
               </Stack>
 
               <Typography sx={{ fontSize: '0.86rem', color: '#66758e' }}>
-                Domaine: {fiche.domain}
+                {item.subtitle}
               </Typography>
               <Typography sx={{ fontSize: '0.82rem', color: '#8a97ad', fontWeight: 700 }}>
-                Recue le {fiche.submittedAt}
+                {item.meta}
               </Typography>
             </Stack>
           </Paper>
@@ -377,11 +222,11 @@ function DashboardRecentFiches({ recentFiches }) {
   )
 }
 
-function DashboardQuickActions({ quickActions }) {
+function DashboardQuickActions({ quickBlock }) {
   return (
-    <ChartCard title="Actions rapides" subtitle="Acces directs aux modules principaux">
+    <ChartCard title={quickBlock.title} subtitle={quickBlock.subtitle}>
       <Box sx={quickActionsGridSx}>
-        {quickActions.map(({ title, subtitle, background, Icon }) => (
+        {quickBlock.items.map(({ title, subtitle, background, Icon }) => (
           <Paper key={title} elevation={0} sx={quickActionCardSx(background)}>
             <Box sx={floatingIconSx}>
               <Icon />
@@ -419,5 +264,3 @@ function DashboardQuickActions({ quickActions }) {
     </ChartCard>
   )
 }
-
-

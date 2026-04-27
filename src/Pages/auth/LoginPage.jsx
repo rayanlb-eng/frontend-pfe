@@ -122,8 +122,6 @@ function LoginPage({ onLogin }) {
     setLoading(true)
     setError('')
 
-    await new Promise((resolve) => window.setTimeout(resolve, 900))
-
     const normalizedIdentifier = identifier.trim().toLowerCase()
     const storedUsers = getStoredUsers()
     const demoAccounts = [
@@ -131,14 +129,12 @@ function LoginPage({ onLogin }) {
         identifier: 'admin',
         email: 'admin@mobilis.dz',
         role: 'DDRH',
-        twoFactorEnabled: false,
         twoFactorRequired: false,
       },
       ...storedUsers.map((user) => ({
         identifier: user.email.split('@')[0],
         email: user.email,
         role: user.accessRole,
-        twoFactorEnabled: Boolean(user.twoFactorEnabled),
         twoFactorRequired: Boolean(user.twoFactorRequired),
       })),
     ]
@@ -149,6 +145,8 @@ function LoginPage({ onLogin }) {
         account.identifier.toLowerCase() === normalizedIdentifier
     )
     const isValidCredentials = Boolean(matchedAccount) && password === DEMO_PASSWORD
+
+    await new Promise((resolve) => window.setTimeout(resolve, 900))
 
     if (!isValidCredentials) {
       setLoading(false)
@@ -171,12 +169,11 @@ function LoginPage({ onLogin }) {
 
     const trustedDevices = JSON.parse(localStorage.getItem(TRUSTED_2FA_DEVICES_KEY) || '{}')
     const isTrustedDevice = Boolean(trustedDevices[matchedAccount.email])
-    const mustUseTwoFactor =
-      matchedAccount.twoFactorRequired ||
-      (matchedAccount.twoFactorEnabled && !isTrustedDevice)
+    const mustUseTwoFactor = matchedAccount.twoFactorRequired || !isTrustedDevice
 
     if (!mustUseTwoFactor) {
       localStorage.setItem('isAuthenticated', 'true')
+      setFailedAttempts(0)
       setLoading(false)
       navigate('/dashboard')
       return

@@ -34,9 +34,8 @@ export default function TwoFactorPage() {
   const [failedAttempts, setFailedAttempts] = useState(0)
   const [requiresNewCode, setRequiresNewCode] = useState(false)
   const [lostAccessHelp, setLostAccessHelp] = useState(false)
-  const [currentOtp, setCurrentOtp] = useState(INITIAL_DEMO_OTP)
   const [rememberDevice, setRememberDevice] = useState(false)
-
+  const [currentOtp, setCurrentOtp] = useState(INITIAL_DEMO_OTP)
   const pendingAuth = useMemo(() => {
     const raw = sessionStorage.getItem('pending2FA')
     return raw ? JSON.parse(raw) : null

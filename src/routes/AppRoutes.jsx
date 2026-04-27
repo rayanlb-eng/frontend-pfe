@@ -7,7 +7,8 @@ import Dashboard from '../Pages/Dashboard/dashboard'
 import AnalysePage from '../Pages/Analyse/AnalysePage'
 import FicheFormPage from '../Pages/Fiches/FicheFormPage'
 import FichesPage from '../Pages/Fiches/FichesPage'
-import MesFichesPage from '../Pages/Fiches/MesFichesPage'
+import FichesDdrh from '../Pages/Fiches/FichesDdrh'
+import FichesEmp from '../Pages/Fiches/FichesEmp'
 import Rapport from '../Pages/Rapport/Rapport'
 import Users from '../Pages/Users/Users'
 import Parametres from '../Pages/Parametres/Parameters'
@@ -68,7 +69,7 @@ export default function AppRoutes() {
         path="/fiches/gestion"
         element={
           <ProtectedRoute>
-            <FichesPage />
+            <FichesDdrh />
           </ProtectedRoute>
         }
       />
@@ -77,7 +78,7 @@ export default function AppRoutes() {
         path="/fiches/mes"
         element={
           <ProtectedRoute>
-            <MesFichesPage />
+            <FichesEmp />
           </ProtectedRoute>
         }
       />

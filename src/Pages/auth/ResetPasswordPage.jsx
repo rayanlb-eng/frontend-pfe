@@ -23,7 +23,6 @@ export default function ResetPasswordPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
-
   const isExpired = token === 'expired'
 
   // Calcule en direct les regles de securite du nouveau mot de passe.

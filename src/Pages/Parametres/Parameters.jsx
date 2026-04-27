@@ -20,9 +20,8 @@ import {
   CONNECTED_USER_EMAIL_KEY,
   CONNECTED_USER_ROLE_KEY,
   getStoredUsers,
-  saveUsers,
 } from '../Users/users.data'
-import { structureRecipients } from '../Fiches/fiches.data'
+import { structureRecipients } from '../Fiches/data/data'
 
 const NOTIFICATIONS_STORAGE_KEY = 'emailNotificationsEnabled'
 
@@ -47,7 +46,6 @@ const iconBoxSx = (background, color) => ({
 })
 
 export default function Parameters() {
-  const [twoFactorEnabled, setTwoFactorEnabled] = useState(false)
   const [twoFactorRequired, setTwoFactorRequired] = useState(false)
   const [emailNotificationsEnabled, setEmailNotificationsEnabled] = useState(true)
   const [connectedUserRole, setConnectedUserRole] = useState('DDRH')
@@ -63,24 +61,8 @@ export default function Parameters() {
     setConnectedUserEmail(nextEmail)
 
     const user = getStoredUsers().find((item) => item.email === nextEmail)
-    setTwoFactorEnabled(Boolean(user?.twoFactorEnabled))
     setTwoFactorRequired(Boolean(user?.twoFactorRequired))
   }, [])
-
-  // Met a jour l'etat 2FA du profil courant tout en respectant l'obligation admin.
-  const handleToggleTwoFactor = (event) => {
-    const checked = event.target.checked
-    const nextUsers = getStoredUsers().map((user) =>
-      user.email === connectedUserEmail
-        ? {
-            ...user,
-            twoFactorEnabled: checked || user.twoFactorRequired,
-          }
-        : user
-    )
-    saveUsers(nextUsers)
-    setTwoFactorEnabled(checked)
-  }
 
   // Persiste l'option de notifications e-mail dans le navigateur.
   const handleToggleNotifications = (event) => {
@@ -102,7 +84,6 @@ export default function Parameters() {
     setConnectedUserEmail(value)
     localStorage.setItem(CONNECTED_USER_EMAIL_KEY, value)
     const user = getStoredUsers().find((item) => item.email === value)
-    setTwoFactorEnabled(Boolean(user?.twoFactorEnabled))
     setTwoFactorRequired(Boolean(user?.twoFactorRequired))
   }
 
@@ -162,49 +143,25 @@ export default function Parameters() {
                   label={
                     twoFactorRequired
                       ? '2FA obligatoire'
-                      : twoFactorEnabled
-                        ? '2FA activee'
-                        : '2FA desactivee'
+                      : '2FA activee'
                   }
                   size="small"
                   sx={{
                     bgcolor: twoFactorRequired
                       ? '#efe7ff'
-                      : twoFactorEnabled
-                        ? '#e6f7ee'
-                        : '#eef2f7',
+                      : '#e6f7ee',
                     color: twoFactorRequired
                       ? '#7c3aed'
-                      : twoFactorEnabled
-                        ? '#1d8e63'
-                        : '#6b778c',
+                      : '#1d8e63',
                     fontWeight: 700,
                   }}
                 />
               </Stack>
 
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={twoFactorEnabled}
-                    onChange={handleToggleTwoFactor}
-                    color="success"
-                    disabled={twoFactorRequired}
-                  />
-                }
-                label={
-                  <Box>
-                    <Typography sx={{ fontSize: '0.92rem', color: '#445169', fontWeight: 700 }}>
-                      Activer la verification a double facteur
-                    </Typography>
-                    <Typography sx={{ mt: 0.2, fontSize: '0.82rem', color: '#7b8798' }}>
-                      Si activee, l'utilisateur verra la page 2FA apres connexion.
-                      {twoFactorRequired ? ' Cette option est obligatoire pour ce profil.' : ''}
-                    </Typography>
-                  </Box>
-                }
-                sx={{ m: 0, alignItems: 'flex-start' }}
-              />
+              <Alert severity="success" sx={{ borderRadius: '14px' }}>
+                Le 2FA est actif par defaut sur la plateforme. La DDRH peut seulement rendre cette
+                verification obligatoire pour certains profils sensibles.
+              </Alert>
 
               <Alert severity="info" sx={{ borderRadius: '14px' }}>
                 Tant que le backend n&apos;est pas branche, cette option est simulee avec
@@ -345,7 +302,7 @@ export default function Parameters() {
               }}
             >
               <Alert severity="success" sx={{ borderRadius: '14px' }}>
-                Parcours front deja disponible : login, erreurs, blocage, 2FA conditionnel,
+                Parcours front deja disponible : login, erreurs, blocage, 2FA par defaut,
                 mot de passe oublie, reinitialisation.
               </Alert>
 

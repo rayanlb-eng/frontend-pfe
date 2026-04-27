@@ -188,24 +188,9 @@ export default function Users() {
     setSelectedUser(null)
   }
 
-  // Gere deux cas: revocation d'acces global ou desactivation temporaire du 2FA.
-  const handleRevokeAccess = (userToUpdate, mode = 'access') => {
+  // Revoque uniquement l'acces global du compte.
+  const handleRevokeAccess = (userToUpdate) => {
     if (!canManageRoles) return
-
-    if (mode === 'twoFactor') {
-      setUsers((currentUsers) =>
-        currentUsers.map((user) =>
-          user.email === userToUpdate.email
-            ? {
-                ...user,
-                twoFactorEnabled: false,
-              }
-            : user
-        )
-      )
-      setFeedback(`Le 2FA de ${userToUpdate.name} a ete desactive temporairement.`)
-      return
-    }
 
     setUsers((currentUsers) =>
       currentUsers.map((user) =>
@@ -233,7 +218,6 @@ export default function Users() {
           ? {
               ...user,
               twoFactorRequired: nextRequiredState,
-              twoFactorEnabled: nextRequiredState ? true : user.twoFactorEnabled,
             }
           : user
       )
@@ -499,11 +483,11 @@ function UserCard({
               sx={{
                 mt: 0.2,
                 fontSize: '0.8rem',
-                color: user.twoFactorEnabled ? '#1d8e63' : '#8a97ad',
+                color: user.twoFactorRequired ? '#7c3aed' : '#1d8e63',
                 fontWeight: 700,
               }}
             >
-              2FA: {user.twoFactorEnabled ? 'Activee' : 'Desactivee'}
+              2FA: Activee par defaut
               {user.twoFactorRequired ? ' - Obligatoire' : ''}
             </Typography>
           </Box>
@@ -542,16 +526,6 @@ function UserCard({
             sx={userSecondaryActionSx}
           >
             Revoquer l'acces
-          </Button>
-
-          <Button
-            variant="outlined"
-            size="small"
-            onClick={() => onRevokeAccess(user, 'twoFactor')}
-            disabled={!canManageRoles || !user.twoFactorEnabled}
-            sx={userSecondaryActionSx}
-          >
-            Desactiver 2FA
           </Button>
 
           <Button
@@ -628,7 +602,6 @@ function UserFormDialog({ open, initialUser, onClose, onSave }) {
     email: '',
     phone: '',
     status: 'Actif',
-    twoFactorEnabled: false,
     twoFactorRequired: false,
     badgeColor: '#2563eb',
     avatar: 'U',
@@ -648,7 +621,6 @@ function UserFormDialog({ open, initialUser, onClose, onSave }) {
       email: '',
       phone: '',
       status: 'Actif',
-      twoFactorEnabled: false,
       twoFactorRequired: false,
       badgeColor: '#2563eb',
       avatar: 'U',
@@ -659,7 +631,7 @@ function UserFormDialog({ open, initialUser, onClose, onSave }) {
     setForm((currentForm) => ({ ...currentForm, [field]: value }))
   }
 
-  // Normalise le profil avant enregistrement et force 2FA activee si elle est obligatoire.
+  // Normalise le profil avant enregistrement ; le 2FA est considere actif par defaut.
   const handleSubmit = () => {
     const trimmedName = form.name.trim()
     const trimmedEmail = form.email.trim()
@@ -669,7 +641,6 @@ function UserFormDialog({ open, initialUser, onClose, onSave }) {
       ...form,
       name: trimmedName,
       email: trimmedEmail,
-      twoFactorEnabled: form.twoFactorRequired ? true : form.twoFactorEnabled,
       badgeColor: form.accessRole === 'DDRH' ? '#7c3aed' : '#2563eb',
       avatar: trimmedName.charAt(0).toUpperCase(),
     })
@@ -703,17 +674,6 @@ function UserFormDialog({ open, initialUser, onClose, onSave }) {
             <MenuItem value="En attente">En attente</MenuItem>
             <MenuItem value="Inactif">Inactif</MenuItem>
             <MenuItem value="Acces revoque">Acces revoque</MenuItem>
-          </TextField>
-          <TextField
-            select
-            label="2FA"
-            value={form.twoFactorEnabled ? 'oui' : 'non'}
-            onChange={(event) => handleChange('twoFactorEnabled', event.target.value === 'oui')}
-            fullWidth
-            disabled={form.twoFactorRequired}
-          >
-            <MenuItem value="oui">Activee</MenuItem>
-            <MenuItem value="non">Desactivee</MenuItem>
           </TextField>
           <TextField
             select
