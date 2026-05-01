@@ -1,4 +1,7 @@
 export const inputSx = {
+  '&&': {
+    width: '100%',
+  },
   '& .MuiFormLabel-root': {
     color: '#6B8176',
     fontWeight: 500,
@@ -11,6 +14,9 @@ export const inputSx = {
     background: '#FFFFFF',
     transition: 'all 0.2s ease',
     boxShadow: '0 6px 18px rgba(8, 61, 35, 0.04)',
+    '& fieldset': {
+      borderColor: '#D7E6DB',
+    },
   },
   '& .MuiOutlinedInput-input': {
     padding: '15px 16px',
@@ -24,5 +30,9 @@ export const inputSx = {
   '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': {
     borderColor: '#00A651',
     borderWidth: '2px',
+  },
+  '& .MuiInputBase-input::placeholder': {
+    color: '#93A79B',
+    opacity: 1,
   },
 }

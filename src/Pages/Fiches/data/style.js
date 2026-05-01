@@ -1,6 +1,4 @@
-// ===== LAYOUT =====
-
-// utilisé pour les sections (cards)
+// Layout
 export const sectionPaperSx = {
   p: 2.5,
   borderRadius: '18px',
@@ -8,7 +6,6 @@ export const sectionPaperSx = {
   background: '#ffffff',
 }
 
-// utilisé pour les grids (stats / top section)
 export const topGridSx = {
   display: 'grid',
   gridTemplateColumns: {
@@ -18,8 +15,7 @@ export const topGridSx = {
   gap: 2,
 }
 
-// ===== SELECT / INPUT MODERN STYLE =====
-
+// Select / input
 export const modernSelectSx = {
   '& .MuiOutlinedInput-root': {
     borderRadius: '14px',
@@ -27,15 +23,13 @@ export const modernSelectSx = {
   },
 }
 
-// ===== TABLE WRAPPER =====
-
+// Table wrapper
 export const trackingTableWrapSx = {
   overflowX: 'auto',
   borderRadius: '16px',
 }
 
-// ===== TABLE CELLS =====
-
+// Table cells
 export const tableHeadCellSx = {
   fontWeight: 800,
   fontSize: '0.85rem',
@@ -49,8 +43,7 @@ export const tableBodyCellSx = {
   whiteSpace: 'nowrap',
 }
 
-// ===== TABLE ACTION BUTTON =====
-
+// Table action button
 export const tableActionButtonSx = {
   borderRadius: '12px',
   textTransform: 'none',
@@ -58,24 +51,21 @@ export const tableActionButtonSx = {
   px: 1.5,
 }
 
-// ===== STATUS CHIP =====
-
+// Status chip
 export const statusChipSx = {
   fontWeight: 700,
   borderRadius: '10px',
   fontSize: '0.75rem',
 }
 
-// ===== NOTIFICATION CHIP =====
-
+// Notification chip
 export const notificationChipSx = {
   fontWeight: 700,
   borderRadius: '10px',
   fontSize: '0.72rem',
 }
 
-// ===== SMALL TEXT =====
-
+// Small text
 export const helperTextSx = {
   fontSize: '0.85rem',
   color: '#72809a',

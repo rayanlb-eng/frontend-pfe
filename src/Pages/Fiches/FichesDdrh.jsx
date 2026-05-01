@@ -43,8 +43,8 @@ function getStatusChipSx(status) {
     'À valider': { bg: '#fff4df', color: '#b7791f' },
     Validée: { bg: '#e8f7ee', color: '#168553' },
     Rejetée: { bg: '#ffe8ed', color: '#c24157' },
-    'Réouverte': { bg: '#eef1ff', color: '#5b5bd6' },
-    'Verrouillée': { bg: '#edf2f7', color: '#475569' },
+    Réouverte: { bg: '#eef1ff', color: '#5b5bd6' },
+    Verrouillée: { bg: '#edf2f7', color: '#475569' },
     Brouillon: { bg: '#eaf2ff', color: '#2563eb' },
     'Non ouverte': { bg: '#f8fafc', color: '#64748b' },
   }
@@ -61,8 +61,12 @@ function getStatusChipSx(status) {
 
 export default function FichesDdrh() {
   const navigate = useNavigate()
-  const [connectedUserRole, setConnectedUserRole] = useState('DDRH')
-  const [selectedTemplateId, setSelectedTemplateId] = useState(ficheTemplates[0]?.id || '')
+  const [connectedUserRole] = useState(
+    () => localStorage.getItem(CONNECTED_USER_ROLE_KEY) || 'DDRH'
+  )
+  const [selectedTemplateId, setSelectedTemplateId] = useState(
+    ficheTemplates[0].id || ''
+  )
   const [selectedRecipientIds, setSelectedRecipientIds] = useState([])
   const [trackingRows, setTrackingRows] = useState(() => getStoredTrackingRows())
   const [statusFilter, setStatusFilter] = useState('Tous')
@@ -73,15 +77,13 @@ export default function FichesDdrh() {
   const formStates = useMemo(() => getStoredFormStates(), [])
 
   useEffect(() => {
-    setConnectedUserRole(localStorage.getItem(CONNECTED_USER_ROLE_KEY) || 'DDRH')
-  }, [])
-
-  useEffect(() => {
     saveTrackingRows(trackingRows)
   }, [trackingRows])
 
   const selectedTemplate = useMemo(
-    () => ficheTemplates.find((template) => template.id === selectedTemplateId) || ficheTemplates[0],
+    () =>
+      ficheTemplates.find((template) => template.id === selectedTemplateId) ||
+      ficheTemplates[0],
     [selectedTemplateId]
   )
 
@@ -94,7 +96,9 @@ export default function FichesDdrh() {
           ? [form]
           : []
 
-      const employeeIds = new Set(requests.flatMap((request) => request.employeeIds || []))
+      const employeeIds = new Set(
+        requests.flatMap((request) => request.employeeIds || [])
+      )
 
       return {
         ...row,
@@ -108,7 +112,8 @@ export default function FichesDdrh() {
   const filteredRows = useMemo(() => {
     return rowsWithCounts.filter((row) => {
       const statusOk = statusFilter === 'Tous' || row.effectiveStatus === statusFilter
-      const structureOk = structureFilter === 'Toutes' || row.structure === structureFilter
+      const structureOk =
+        structureFilter === 'Toutes' || row.structure === structureFilter
       return statusOk && structureOk
     })
   }, [rowsWithCounts, statusFilter, structureFilter])
@@ -186,9 +191,11 @@ export default function FichesDdrh() {
           <Typography sx={{ fontSize: '1.65rem', fontWeight: 800, color: '#1b2740' }}>
             Fiches DDRH
           </Typography>
-          <Typography sx={{ mt: 0.55, color: '#72809a', fontSize: '0.94rem', maxWidth: 860 }}>
-            Envoyez les fiches, filtrez les retours des structures et ouvrez directement une fiche
-            pour la lire puis la valider, la rejeter, la verrouiller ou la réouvrir.
+          <Typography
+            sx={{ mt: 0.55, color: '#72809a', fontSize: '0.94rem', maxWidth: 860 }}
+          >
+            Envoyez les fiches, filtrez les retours des structures et ouvrez directement une
+            fiche pour la lire puis la valider, la rejeter, la verrouiller ou la réouvrir.
           </Typography>
         </Box>
 
@@ -313,7 +320,13 @@ export default function FichesDdrh() {
                       <InfoBlock label="Responsable" value={row.manager} />
                       <InfoBlock
                         label="Statut"
-                        value={<Chip size="small" label={row.effectiveStatus} sx={getStatusChipSx(row.effectiveStatus)} />}
+                        value={
+                          <Chip
+                            size="small"
+                            label={row.effectiveStatus}
+                            sx={getStatusChipSx(row.effectiveStatus)}
+                          />
+                        }
                       />
                       <InfoBlock label="Nb formations" value={row.formationsCount} />
                       <InfoBlock label="Nb employés" value={row.employeesCount} />

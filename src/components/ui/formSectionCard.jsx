@@ -33,7 +33,7 @@ export default function FormSectionCard({
         {title}
       </Typography>
 
-      {subtitle && (
+      {subtitle ? (
         <Typography
           sx={{
             fontSize: '0.92rem',
@@ -43,7 +43,7 @@ export default function FormSectionCard({
         >
           {subtitle}
         </Typography>
-      )}
+      ) : null}
 
       {children}
     </Paper>

@@ -14,7 +14,7 @@ import {
   Switch,
   Typography,
 } from '@mui/material'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import MainLayout from '../../components/layout/mainLayout'
 import {
   CONNECTED_USER_EMAIL_KEY,
@@ -46,23 +46,20 @@ const iconBoxSx = (background, color) => ({
 })
 
 export default function Parameters() {
-  const [twoFactorRequired, setTwoFactorRequired] = useState(false)
-  const [emailNotificationsEnabled, setEmailNotificationsEnabled] = useState(true)
-  const [connectedUserRole, setConnectedUserRole] = useState('DDRH')
-  const [connectedUserEmail, setConnectedUserEmail] = useState('k.ziani@mobilis.dz')
-
-  // Recharge le profil courant et ses options locales de demonstration.
-  useEffect(() => {
-    const storedNotifications = localStorage.getItem(NOTIFICATIONS_STORAGE_KEY)
-    setEmailNotificationsEnabled(storedNotifications !== 'false')
-    const nextRole = localStorage.getItem(CONNECTED_USER_ROLE_KEY) || 'DDRH'
-    const nextEmail = localStorage.getItem(CONNECTED_USER_EMAIL_KEY) || 'k.ziani@mobilis.dz'
-    setConnectedUserRole(nextRole)
-    setConnectedUserEmail(nextEmail)
-
-    const user = getStoredUsers().find((item) => item.email === nextEmail)
-    setTwoFactorRequired(Boolean(user?.twoFactorRequired))
-  }, [])
+  const [emailNotificationsEnabled, setEmailNotificationsEnabled] = useState(
+    () => localStorage.getItem(NOTIFICATIONS_STORAGE_KEY) !== 'false'
+  )
+  const [connectedUserRole, setConnectedUserRole] = useState(
+    () => localStorage.getItem(CONNECTED_USER_ROLE_KEY) || 'DDRH'
+  )
+  const [connectedUserEmail, setConnectedUserEmail] = useState(
+    () => localStorage.getItem(CONNECTED_USER_EMAIL_KEY) || 'k.ziani@mobilis.dz'
+  )
+  const [twoFactorRequired, setTwoFactorRequired] = useState(() => {
+    const email = localStorage.getItem(CONNECTED_USER_EMAIL_KEY) || 'k.ziani@mobilis.dz'
+    const user = getStoredUsers().find((item) => item.email === email)
+    return Boolean(user?.twoFactorRequired)
+  })
 
   // Persiste l'option de notifications e-mail dans le navigateur.
   const handleToggleNotifications = (event) => {

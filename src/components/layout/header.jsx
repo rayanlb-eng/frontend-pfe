@@ -19,7 +19,7 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material'
-import { useEffect, useMemo, useState } from 'react'
+import { createElement, useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import {
   CONNECTED_USER_EMAIL_KEY,
@@ -85,15 +85,18 @@ export default function Header() {
   const navigate = useNavigate()
   const [notificationsAnchor, setNotificationsAnchor] = useState(null)
   const [profileAnchor, setProfileAnchor] = useState(null)
-  const [connectedUserRole, setConnectedUserRole] = useState('DDRH')
-  const [connectedUserEmail, setConnectedUserEmail] = useState('k.ziani@mobilis.dz')
-  const [notifications, setNotifications] = useState([])
-
-  useEffect(() => {
-    setConnectedUserRole(localStorage.getItem(CONNECTED_USER_ROLE_KEY) || 'DDRH')
-    setConnectedUserEmail(localStorage.getItem(CONNECTED_USER_EMAIL_KEY) || 'k.ziani@mobilis.dz')
-    setNotifications(getStoredNotifications())
-  }, [location.pathname])
+  const [notificationsVersion, setNotificationsVersion] = useState(0)
+  const connectedUserRole = localStorage.getItem(CONNECTED_USER_ROLE_KEY) || 'DDRH'
+  const connectedUserEmail =
+    localStorage.getItem(CONNECTED_USER_EMAIL_KEY) || 'k.ziani@mobilis.dz'
+  const notifications = useMemo(
+    () => {
+      void location.pathname
+      void notificationsVersion
+      return getStoredNotifications()
+    },
+    [location.pathname, notificationsVersion]
+  )
 
   const currentPage =
     location.pathname === '/dashboard'
@@ -124,7 +127,7 @@ export default function Header() {
   }, [connectedUserEmail, connectedUserRole, notifications])
 
   const unreadCount = visibleNotifications.filter((item) => !item.read).length
-  const userInitial = (connectedUserEmail?.charAt(0) || 'R').toUpperCase()
+  const userInitial = (connectedUserEmail.charAt(0) || 'R').toUpperCase()
 
   // Ouvre le menu ancre sur l'icone de notifications.
   const handleOpenNotifications = (event) => {
@@ -148,8 +151,8 @@ export default function Header() {
     const updatedNotifications = notifications.map((item) =>
       item.id === notification.id ? { ...item, read: true } : item
     )
-    setNotifications(updatedNotifications)
     saveNotifications(updatedNotifications)
+    setNotificationsVersion((value) => value + 1)
     setNotificationsAnchor(null)
 
     if (notification.trackingId) {
@@ -164,8 +167,8 @@ export default function Header() {
         ? { ...item, read: true }
         : item
     )
-    setNotifications(updatedNotifications)
     saveNotifications(updatedNotifications)
+    setNotificationsVersion((value) => value + 1)
   }
 
   const handleLogout = () => {
@@ -204,7 +207,7 @@ export default function Header() {
           {chips.map(({ label, Icon, background, color }) => (
             <Chip
               key={label}
-              icon={<Icon />}
+              icon={createElement(Icon)}
               label={label}
               size="small"
               sx={{

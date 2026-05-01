@@ -170,7 +170,8 @@ export const initialTrackingRows = [
     reopened: true,
     locked: false,
     ddrhDecision: '',
-    ddrhComment: 'Merci de préciser le lien entre le besoin et le plan de contrôle 2026.',
+    ddrhComment:
+      'Merci de préciser le lien entre le besoin et le plan de contrôle 2026.',
   },
   {
     id: 'trk-005',
@@ -202,7 +203,7 @@ export const initialTrackingRows = [
     reopened: false,
     locked: false,
     ddrhDecision: '',
-    ddrhComment: 'Besoins transmis pour arbitrage budgetaire.',
+    ddrhComment: 'Besoins transmis pour arbitrage budgétaire.',
   },
   {
     id: 'trk-007',
@@ -276,8 +277,10 @@ export const initialFormStates = {
       {
         employeeIds: ['1001', '1005'],
         intituleFormation: 'Leadership terrain',
-        contexteFormation: 'Montée en responsabilité des chefs d’équipe et encadrants commerciaux.',
-        objectif: 'Améliorer le pilotage des équipes terrain et la prise de décision.',
+        contexteFormation:
+          'Montée en responsabilité des chefs d’équipe et encadrants commerciaux.',
+        objectif:
+          'Améliorer le pilotage des équipes terrain et la prise de décision.',
         kpi: 'Réduction du temps de traitement des incidents terrain.',
         echeance: '2026-06-15',
         ecartMetier: 'Pilotage multi-sites',
@@ -332,7 +335,8 @@ export const initialFormStates = {
       {
         employeeIds: ['1003', '1006'],
         intituleFormation: 'Conduite du changement',
-        contexteFormation: 'Accompagnement des équipes sur les nouveaux processus internes.',
+        contexteFormation:
+          'Accompagnement des équipes sur les nouveaux processus internes.',
         objectif: 'Mieux gérer les transformations métier.',
         kpi: 'Adoption plus rapide des nouveaux process.',
         echeance: '2026-08-15',
@@ -344,7 +348,8 @@ export const initialFormStates = {
       {
         employeeIds: ['1003'],
         intituleFormation: 'Excel avance',
-        contexteFormation: 'Consolidation des reportings de support et des tableaux de suivi.',
+        contexteFormation:
+          'Consolidation des reportings de support et des tableaux de suivi.',
         objectif: 'Ameliorer la fiabilite des tableaux de bord mensuels.',
         kpi: 'Reduction du temps de preparation des reportings.',
         echeance: '2026-09-10',
@@ -388,7 +393,8 @@ export const initialFormStates = {
       {
         employeeIds: ['1004', '1006'],
         intituleFormation: 'Power BI',
-        contexteFormation: 'Besoin de visualisation partagee des indicateurs budgetaires et RH.',
+        contexteFormation:
+          'Besoin de visualisation partagee des indicateurs budgetaires et RH.',
         objectif: 'Construire des tableaux de bord dynamiques pour le pilotage.',
         kpi: 'Mise en place de dashboards consolidés.',
         echeance: '2026-10-05',
@@ -444,8 +450,10 @@ export const initialFormStates = {
       {
         employeeIds: ['1001'],
         intituleFormation: 'Leadership terrain',
-        contexteFormation: 'Accompagnement des responsables terrain sur l animation des equipes.',
-        objectif: 'Mieux organiser les rituels de pilotage et le suivi d equipe.',
+        contexteFormation:
+          'Accompagnement des responsables terrain sur l animation des equipes.',
+        objectif:
+          'Mieux organiser les rituels de pilotage et le suivi d equipe.',
         kpi: 'Meilleur suivi des plans d action terrain.',
         echeance: '2026-08-05',
         ecartMetier: 'Encadrement de proximite',
@@ -460,7 +468,8 @@ export const initialFormStates = {
       {
         employeeIds: ['1003', '1006'],
         intituleFormation: 'Power BI',
-        contexteFormation: 'Consolidation des indicateurs SI et RH dans des vues partagees.',
+        contexteFormation:
+          'Consolidation des indicateurs SI et RH dans des vues partagees.',
         objectif: 'Mieux suivre les demandes internes et la charge de support.',
         kpi: 'Mise en place de rapports automatises mensuels.',
         echeance: '2026-09-25',
@@ -472,7 +481,8 @@ export const initialFormStates = {
       {
         employeeIds: ['1003'],
         intituleFormation: 'Cybersecurite operationnelle',
-        contexteFormation: 'Renforcement de la securisation des acces et des postes critiques.',
+        contexteFormation:
+          'Renforcement de la securisation des acces et des postes critiques.',
         objectif: 'Mieux prevenir les incidents lies aux usages a risque.',
         kpi: 'Reduction des ecarts de securite constates.',
         echeance: '2026-08-28',
@@ -500,7 +510,8 @@ export const initialFormStates = {
       {
         employeeIds: ['1004', '1006'],
         intituleFormation: 'Excel avance',
-        contexteFormation: 'Uniformisation des pratiques de reporting entre Finance et RH.',
+        contexteFormation:
+          'Uniformisation des pratiques de reporting entre Finance et RH.',
         objectif: 'Construire des fichiers de suivi robustes et reutilisables.',
         kpi: 'Moins de retraitement manuel sur les reportings mensuels.',
         echeance: '2026-07-30',

@@ -154,10 +154,12 @@ export default function ResetPasswordPage() {
                       fontWeight: 600,
                       color: rule.valid ? '#0B5E36' : '#5D7367',
                       background: rule.valid
-                        ? 'linear-gradient(180deg, #DDF7E7, #F5FFF8)'
+                        ?
+                        'linear-gradient(180deg, #DDF7E7, #F5FFF8)'
                         : 'linear-gradient(180deg, #EDF3EE, #F7FAF8)',
                       border: rule.valid
-                        ? '1px solid rgba(0,166,81,0.22)'
+                        ?
+                        '1px solid rgba(0,166,81,0.22)'
                         : '1px solid rgba(160,180,170,0.22)',
                     }}
                   />
@@ -195,7 +197,7 @@ export default function ResetPasswordPage() {
           ) : null}
 
           <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1.2, flexWrap: 'wrap' }}>
-            {isExpired ? (
+          {isExpired ? (
               <Button
                 component={RouterLink}
                 to="/forgot-password"

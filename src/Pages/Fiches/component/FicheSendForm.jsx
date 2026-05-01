@@ -31,7 +31,8 @@ export default function FicheSendForm({
     onRecipientsChange([])
   }
 
-  const selectedTemplate = templates.find((template) => template.id === selectedTemplateId) || null
+  const selectedTemplate =
+    templates.find((template) => template.id === selectedTemplateId) || null
   const selectedRecipients = recipients.filter((recipient) =>
     selectedRecipientIds.includes(recipient.id)
   )
@@ -44,8 +45,8 @@ export default function FicheSendForm({
             Envoi des fiches
           </Typography>
           <Typography sx={{ mt: 0.35, fontSize: '0.88rem', color: '#72809a' }}>
-            Sélectionnez une fiche standardisée puis choisissez un ou plusieurs directeurs de
-            structure.
+            Sélectionnez une fiche standardisée puis choisissez un ou plusieurs directeurs
+            de structure.
           </Typography>
         </Box>
 
@@ -81,7 +82,9 @@ export default function FicheSendForm({
               isOptionEqualToValue={(option, value) => option.id === value.id}
               sx={modernSelectSx}
               fullWidth
-              renderInput={(params) => <TextField {...params} label="Fiche standardisée" />}
+              renderInput={(params) => (
+                <TextField {...params} label="Fiche standardisée" />
+              )}
             />
 
             <Autocomplete

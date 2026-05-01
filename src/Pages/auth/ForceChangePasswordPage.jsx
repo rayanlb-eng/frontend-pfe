@@ -1,54 +1,27 @@
-import VisibilityOffRoundedIcon from '@mui/icons-material/VisibilityOffRounded'
-import VisibilityRoundedIcon from '@mui/icons-material/VisibilityRounded'
-import {
-  Box,
-  Button,
-  Chip,
-  IconButton,
-  InputAdornment,
-  Paper,
-  TextField,
-  Typography,
-} from '@mui/material'
+import { Box, Button, Chip, Paper } from '@mui/material'
 import { useMemo, useState } from 'react'
-import { inputSx } from '../../theme/authstyles'
 import BrandHeader from '../../components/auth/Brandheader'
 import PasswordField from '../../components/auth/PasswordField'
-
 
 function ForceChangePasswordPage({ onSubmitSuccess }) {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false)
   const [showNewPassword, setShowNewPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
 
-  const rules = useMemo(() => {
-    return [
-      {
-        label: '8 caractères minimum',
-        valid: newPassword.length >= 8,
-      },
-      {
-        label: '1 lettre majuscule',
-        valid: /[A-Z]/.test(newPassword),
-      },
-      {
-        label: '1 chiffre minimum',
-        valid: /\d/.test(newPassword),
-      },
-      {
-        label: 'Confirmation identique',
-        valid: !!confirmPassword && newPassword === confirmPassword,
-      },
-    ]
-  }, [newPassword, confirmPassword])
+  const rules = useMemo(
+    () => [
+      { label: '8 caractères minimum', valid: newPassword.length >= 8 },
+      { label: '1 lettre majuscule', valid: /[A-Z]/.test(newPassword) },
+      { label: '1 chiffre minimum', valid: /\d/.test(newPassword) },
+      { label: 'Confirmation identique', valid: !!confirmPassword && newPassword === confirmPassword },
+    ],
+    [newPassword, confirmPassword]
+  )
 
-  const isFormValid =
-    currentPassword.trim() &&
-    rules.every((rule) => rule.valid)
+  const isFormValid = currentPassword.trim() && rules.every((rule) => rule.valid)
 
   const handleSubmit = (event) => {
     event.preventDefault()
@@ -91,10 +64,7 @@ function ForceChangePasswordPage({ onSubmitSuccess }) {
           backdropFilter: 'blur(14px)',
         }}
       >
-        <BrandHeader
-          title="Renouveler votre mot de passe"
-          subtitle=""
-        />
+        <BrandHeader title="Renouveler votre mot de passe" subtitle="" />
 
         <Box component="form" onSubmit={handleSubmit} sx={{ display: 'grid', gap: 1.5 }}>
           <PasswordField

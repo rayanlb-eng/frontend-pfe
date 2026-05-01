@@ -43,9 +43,7 @@ export function cleanText(value) {
     .replaceAll('Ã´', 'ô')
     .replaceAll('Ã§', 'ç')
     .replaceAll('â€™', "'")
-    .replaceAll('Ã¢â‚¬â„¢', "'")
     .replaceAll('â€“', '-')
-    .replaceAll('Ã¢â‚¬â€œ', '-')
 }
 
 export function normalizeTrainingTitle(title) {

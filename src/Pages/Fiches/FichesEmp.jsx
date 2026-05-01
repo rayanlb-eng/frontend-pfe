@@ -1,5 +1,4 @@
 import ArrowOutwardRoundedIcon from '@mui/icons-material/ArrowOutwardRounded'
-import CampaignRoundedIcon from '@mui/icons-material/CampaignRounded'
 import LockRoundedIcon from '@mui/icons-material/LockRounded'
 import ModeEditOutlineRoundedIcon from '@mui/icons-material/ModeEditOutlineRounded'
 import VisibilityRoundedIcon from '@mui/icons-material/VisibilityRounded'
@@ -9,16 +8,29 @@ import {
   Button,
   Chip,
   CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   Paper,
   Stack,
   Typography,
 } from '@mui/material'
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import MainLayout from '../../components/layout/mainLayout'
-import { CONNECTED_USER_EMAIL_KEY, CONNECTED_USER_ROLE_KEY } from '../Users/users.data'
+import {
+  CONNECTED_USER_EMAIL_KEY,
+  CONNECTED_USER_ROLE_KEY,
+} from '../Users/users.data'
 import { structureRecipients } from './data/data'
-import { getStoredFormStates, getStoredTrackingRows } from './data/storage'
+import {
+  getStoredFormStates,
+  getStoredNotifications,
+  getStoredTrackingRows,
+  saveNotifications,
+  saveTrackingRows,
+} from './data/storage'
 import { sectionPaperSx } from './data/style'
 
 function parseSentAt(value) {
@@ -42,19 +54,11 @@ function getDisplayStatus(row) {
 
 function getActionConfig(row) {
   if (row.locked) {
-    return {
-      label: 'Voir',
-      icon: <LockRoundedIcon />,
-      variant: 'outlined',
-    }
+    return { label: 'Voir', icon: <LockRoundedIcon />, variant: 'outlined' }
   }
 
   if (row.formStatus === 'Soumise' && !row.reopened) {
-    return {
-      label: 'Voir',
-      icon: <VisibilityRoundedIcon />,
-      variant: 'outlined',
-    }
+    return { label: 'Voir', icon: <VisibilityRoundedIcon />, variant: 'outlined' }
   }
 
   if (row.reopened) {
@@ -73,19 +77,15 @@ function getActionConfig(row) {
     }
   }
 
-  return {
-    label: 'Commencer',
-    icon: <ArrowOutwardRoundedIcon />,
-    variant: 'contained',
-  }
+  return { label: 'Commencer', icon: <ArrowOutwardRoundedIcon />, variant: 'contained' }
 }
 
 function getStatusChipSx(status) {
   const palette = {
     Brouillon: { bg: '#eaf2ff', color: '#2563eb' },
     Soumise: { bg: '#e8f7ee', color: '#168553' },
-    'Réouverte': { bg: '#eef1ff', color: '#5b5bd6' },
-    'Verrouillée': { bg: '#fff4df', color: '#b7791f' },
+    Réouverte: { bg: '#eef1ff', color: '#5b5bd6' },
+    Verrouillée: { bg: '#fff4df', color: '#b7791f' },
     Disponible: { bg: '#f3f4f6', color: '#475569' },
   }
 
@@ -139,40 +139,39 @@ function getActionButtonSx(variant) {
   }
 }
 
-function buildRules() {
-  return [
-    'Brouillon : modification autorisée.',
-    'Soumise : lecture seule.',
-    'Réouverte : correction autorisée.',
-    'Verrouillée : lecture seule.',
-    "Une fiche peut contenir plusieurs formations et chaque formation plusieurs employés.",
-  ]
+function getSecondaryActionButtonSx() {
+  return {
+    minHeight: 38,
+    height: 38,
+    px: 1.6,
+    minWidth: 0,
+    borderRadius: '12px',
+    textTransform: 'none',
+    fontWeight: 800,
+    borderColor: '#d5deea',
+    color: '#475569',
+    background: '#fff',
+    boxShadow: 'none',
+    '&:hover': {
+      borderColor: '#c2d1e2',
+      background: '#f8fbff',
+      boxShadow: 'none',
+    },
+  }
 }
 
 export default function FichesEmp() {
   const navigate = useNavigate()
-  const [connectedUserRole, setConnectedUserRole] = useState('Employeur')
-  const [connectedUserEmail, setConnectedUserEmail] = useState('')
-  const [trackingRows, setTrackingRows] = useState([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [loadError, setLoadError] = useState('')
-
-  useEffect(() => {
-    try {
-      setConnectedUserRole(localStorage.getItem(CONNECTED_USER_ROLE_KEY) || 'Employeur')
-      setConnectedUserEmail(localStorage.getItem(CONNECTED_USER_EMAIL_KEY) || '')
-      setTrackingRows(getStoredTrackingRows())
-      setLoadError('')
-    } catch (error) {
-      setLoadError("Impossible de charger les fiches de l'employeur.")
-    } finally {
-      setIsLoading(false)
-    }
-  }, [])
-
-  if (connectedUserRole === 'DDRH') {
-    return <Navigate to="/fiches/gestion" replace />
-  }
+  const [connectedUserRole] = useState(
+    () => localStorage.getItem(CONNECTED_USER_ROLE_KEY) || 'Employeur'
+  )
+  const [connectedUserEmail] = useState(
+    () => localStorage.getItem(CONNECTED_USER_EMAIL_KEY) || ''
+  )
+  const [trackingRows, setTrackingRows] = useState(() => getStoredTrackingRows())
+  const [isLoading] = useState(false)
+  const [feedback, setFeedback] = useState('')
+  const [requestDialogRow, setRequestDialogRow] = useState(null)
 
   const myRecipientIds = useMemo(
     () =>
@@ -184,85 +183,63 @@ export default function FichesEmp() {
 
   const formStates = useMemo(() => getStoredFormStates(), [])
 
-  const myRows = useMemo(() => {
-    return trackingRows
-      .filter((row) => myRecipientIds.includes(row.recipientId))
-      .sort((left, right) => parseSentAt(right.sentAt) - parseSentAt(left.sentAt))
-  }, [trackingRows, myRecipientIds])
+  const myRows = useMemo(
+    () =>
+      trackingRows
+        .filter((row) => myRecipientIds.includes(row.recipientId))
+        .sort((left, right) => parseSentAt(right.sentAt) - parseSentAt(left.sentAt)),
+    [trackingRows, myRecipientIds]
+  )
 
-  const rules = useMemo(() => buildRules(), [])
+  if (connectedUserRole === 'DDRH') {
+    return <Navigate to="/fiches/gestion" replace />
+  }
+
+  const handleOpenReopenRequest = (row) => {
+    setRequestDialogRow(row)
+  }
+
+  const handleCloseReopenRequest = () => {
+    setRequestDialogRow(null)
+  }
+
+  const handleSubmitReopenRequest = () => {
+    if (!requestDialogRow) return
+
+    const recipient = structureRecipients.find(
+      (item) => item.id === requestDialogRow.recipientId
+    )
+    const nextRows = trackingRows.map((row) =>
+      row.id === requestDialogRow.id ? { ...row, reopenRequestPending: true } : row
+    )
+
+    setTrackingRows(nextRows)
+    saveTrackingRows(nextRows)
+
+    const currentNotifications = getStoredNotifications()
+    const nextNotification = {
+      id: `notif-reopen-${requestDialogRow.id}-${Date.now()}`,
+      type: 'reopen-request',
+      recipientId: requestDialogRow.recipientId,
+      recipientEmail: recipient?.email || '',
+      title: 'Demande de réouverture de fiche',
+      message: `${requestDialogRow.manager} a demandé la réouverture de la fiche ${requestDialogRow.templateName} pour ${requestDialogRow.structure}.`,
+      trackingId: requestDialogRow.id,
+      read: false,
+      createdAt: new Date().toLocaleDateString('fr-FR'),
+    }
+
+    saveNotifications([nextNotification, ...currentNotifications])
+    setFeedback('La demande de réouverture a été envoyée à la DDRH.')
+    setRequestDialogRow(null)
+  }
 
   return (
     <MainLayout>
       <Box sx={{ display: 'grid', gap: 3 }}>
-        <Box>
-          <Typography sx={{ fontSize: '1.65rem', fontWeight: 800, color: '#1b2740' }}>
-            Mes fiches
-          </Typography>
-          <Typography sx={{ mt: 0.55, color: '#72809a', fontSize: '0.94rem', maxWidth: 860 }}>
-            Chaque campagne vous transmet une seule fiche. Cette fiche peut regrouper plusieurs
-            formations, et chaque formation peut concerner un ou plusieurs employés.
-          </Typography>
-        </Box>
-
-        <Paper
-          elevation={0}
-          sx={{
-            ...sectionPaperSx,
-            background:
-              'linear-gradient(180deg, rgba(248,251,255,0.98) 0%, rgba(255,255,255,1) 100%)',
-          }}
-        >
-          <Stack spacing={1.3}>
-            <Stack direction="row" spacing={1} alignItems="center">
-              <Box
-                sx={{
-                  width: 42,
-                  height: 42,
-                  borderRadius: '14px',
-                  display: 'grid',
-                  placeItems: 'center',
-                  bgcolor: '#eaf4ed',
-                  color: '#1b8a52',
-                }}
-              >
-                <CampaignRoundedIcon />
-              </Box>
-              <Typography sx={{ fontWeight: 800, color: '#1b2740', fontSize: '1rem' }}>
-                Règles côté interface
-              </Typography>
-            </Stack>
-
-            <Box
-              sx={{
-                display: 'grid',
-                gridTemplateColumns: { xs: '1fr', md: 'repeat(2, minmax(0, 1fr))' },
-                gap: 1,
-              }}
-            >
-              {rules.map((rule) => (
-                <Paper
-                  key={rule}
-                  elevation={0}
-                  sx={{
-                    p: 1.2,
-                    borderRadius: '14px',
-                    border: '1px solid #e8edf5',
-                    background: '#fff',
-                  }}
-                >
-                  <Typography sx={{ color: '#55657d', fontSize: '0.9rem', fontWeight: 600 }}>
-                    {rule}
-                  </Typography>
-                </Paper>
-              ))}
-            </Box>
-          </Stack>
-        </Paper>
-
-        {loadError ? (
-          <Alert severity="error" sx={{ borderRadius: '14px' }}>
-            {loadError}
+        {feedback ? (
+          <Alert severity="success" sx={{ borderRadius: '14px' }}>
+            {feedback}
           </Alert>
         ) : null}
 
@@ -277,7 +254,7 @@ export default function FichesEmp() {
           </Paper>
         ) : myRows.length === 0 ? (
           <Alert severity="warning" sx={{ borderRadius: '14px' }}>
-            Aucune fiche n’est actuellement rattachée à votre compte.
+            Aucune fiche n&apos;est actuellement rattachée à votre compte.
           </Alert>
         ) : (
           <Paper elevation={0} sx={sectionPaperSx}>
@@ -287,7 +264,8 @@ export default function FichesEmp() {
                   Liste des fiches
                 </Typography>
                 <Typography sx={{ mt: 0.35, fontSize: '0.88rem', color: '#72809a' }}>
-                  Une ligne par campagne reçue, avec le statut de la fiche et l’action disponible.
+                  Une ligne par campagne reçue, avec le statut de la fiche et l&apos;action
+                  disponible.
                 </Typography>
               </Box>
 
@@ -295,15 +273,21 @@ export default function FichesEmp() {
                 {myRows.map((row) => {
                   const status = getDisplayStatus(row)
                   const action = getActionConfig(row)
-                  const requests = Array.isArray(formStates[row.id]?.trainingRequests)
-                    ? formStates[row.id].trainingRequests
-                    : formStates[row.id]?.intituleFormation
-                      ? [formStates[row.id]]
+                  const currentFormState = formStates[row.id] || {}
+                  const requests = Array.isArray(currentFormState.trainingRequests)
+                    ? currentFormState.trainingRequests
+                    : currentFormState.intituleFormation
+                      ? [currentFormState]
                       : []
 
                   const employeesCount = new Set(
                     requests.flatMap((request) => request.employeeIds || [])
                   ).size
+
+                  const canRequestReopen =
+                    row.formStatus === 'Soumise' &&
+                    !row.reopened &&
+                    !row.reopenRequestPending
 
                   return (
                     <Paper
@@ -348,14 +332,37 @@ export default function FichesEmp() {
                           sx={{ flexShrink: 0 }}
                         >
                           <Chip label={status} size="small" sx={getStatusChipSx(status)} />
-                          <Button
-                            startIcon={action.icon}
-                            variant={action.variant}
-                            onClick={() => navigate(`/fiches/form/${row.id}`)}
-                            sx={getActionButtonSx(action.variant)}
-                          >
-                            {action.label}
-                          </Button>
+                          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
+                            <Button
+                              startIcon={action.icon}
+                              variant={action.variant}
+                              onClick={() => navigate(`/fiches/form/${row.id}`)}
+                              sx={getActionButtonSx(action.variant)}
+                            >
+                              {action.label}
+                            </Button>
+                            {canRequestReopen ? (
+                              <Button
+                                variant="outlined"
+                                onClick={() => handleOpenReopenRequest(row)}
+                                sx={getSecondaryActionButtonSx()}
+                              >
+                                Demander réouverture
+                              </Button>
+                            ) : null}
+                            {row.reopenRequestPending ? (
+                              <Chip
+                                label="Réouverture demandée"
+                                size="small"
+                                sx={{
+                                  bgcolor: '#fff4df',
+                                  color: '#b7791f',
+                                  fontWeight: 800,
+                                  borderRadius: '999px',
+                                }}
+                              />
+                            ) : null}
+                          </Stack>
                         </Stack>
                       </Stack>
                     </Paper>
@@ -366,6 +373,35 @@ export default function FichesEmp() {
           </Paper>
         )}
       </Box>
+
+      <Dialog open={Boolean(requestDialogRow)} onClose={handleCloseReopenRequest} fullWidth maxWidth="sm">
+        <DialogTitle sx={{ fontWeight: 900 }}>Demander la réouverture</DialogTitle>
+        <DialogContent>
+          <Stack spacing={1.4} sx={{ pt: 0.6 }}>
+            <Typography sx={{ color: '#64748B', fontSize: '0.92rem' }}>
+              La DDRH recevra une notification pour réouvrir cette fiche si la demande est
+              acceptée.
+            </Typography>
+            <Alert severity="info" sx={{ borderRadius: '14px' }}>
+              Fiche concernée : <strong>{requestDialogRow?.templateName}</strong>
+              <br />
+              Structure : <strong>{requestDialogRow?.structure}</strong>
+            </Alert>
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2.5 }}>
+          <Button onClick={handleCloseReopenRequest} sx={{ textTransform: 'none' }}>
+            Annuler
+          </Button>
+          <Button
+            variant="contained"
+            onClick={handleSubmitReopenRequest}
+            sx={{ textTransform: 'none', borderRadius: '12px', boxShadow: 'none' }}
+          >
+            Envoyer la demande
+          </Button>
+        </DialogActions>
+      </Dialog>
     </MainLayout>
   )
 }

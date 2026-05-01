@@ -53,36 +53,34 @@ function LoginPage({ onLogin }) {
     const value = Number(localStorage.getItem('loginBlockedUntil'))
     return Number.isNaN(value) ? 0 : value
   })
-  const [remainingMs, setRemainingMs] = useState(0)
+  const [currentTime, setCurrentTime] = useState(() => Date.now())
   const navigate = useNavigate()
 
-  const isBlocked = blockedUntil > Date.now()
+  const isBlocked = blockedUntil > currentTime
+  const remainingMs = isBlocked ? Math.max(0, blockedUntil - currentTime) : 0
   const isDisabled = !identifier.trim() || !password.trim() || loading || isBlocked
 
   // Gere le compte a rebours d'un compte temporairement bloque.
   useEffect(() => {
     if (!isBlocked) {
-      setRemainingMs(0)
       if (blockedUntil) {
         localStorage.removeItem('loginBlockedUntil')
         localStorage.removeItem('loginFailedAttempts')
-        setFailedAttempts(0)
-        setBlockedUntil(0)
       }
       return
     }
 
     const updateRemaining = () => {
-      const nextRemaining = blockedUntil - Date.now()
+      const now = Date.now()
+      setCurrentTime(now)
+      const nextRemaining = blockedUntil - now
       if (nextRemaining <= 0) {
-        setRemainingMs(0)
         setBlockedUntil(0)
         setFailedAttempts(0)
         localStorage.removeItem('loginBlockedUntil')
         localStorage.removeItem('loginFailedAttempts')
         return
       }
-      setRemainingMs(nextRemaining)
     }
 
     updateRemaining()
@@ -225,21 +223,7 @@ function LoginPage({ onLogin }) {
         <BrandHeader title="Connexion a la plateforme" subtitle="" />
 
         <Box component="form" onSubmit={handleSubmit} sx={{ display: 'grid', gap: 1.6 }}>
-          <Alert
-            severity="info"
-            sx={{
-              borderRadius: '18px',
-              alignItems: 'center',
-              '& .MuiAlert-message': { width: '100%' },
-            }}
-          >
-            <Typography sx={{ fontWeight: 700, fontSize: '0.9rem' }}>
-              Demo frontend
-            </Typography>
-            <Typography sx={{ mt: 0.2, fontSize: '0.84rem' }}>
-              Exemples: `admin` ou `admin@mobilis.dz` Mot de passe: {DEMO_PASSWORD}
-            </Typography>
-          </Alert>
+          
 
           {error ? (
             <Alert
@@ -332,7 +316,7 @@ function LoginPage({ onLogin }) {
                 },
               }}
             >
-              Mot de passe oublie ?
+              Mot de passe oublie 
             </Link>
           </Box>
 

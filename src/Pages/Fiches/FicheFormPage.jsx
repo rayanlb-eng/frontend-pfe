@@ -12,6 +12,10 @@ import {
   Button,
   Chip,
   Divider,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   Paper,
   Stack,
   TextField,
@@ -77,10 +81,8 @@ function normalizeStoredForm(rawForm) {
   const matchedEmployee = employeesDirectory.find(
     (employee) =>
       String(employee.idEmploye) === String(rawForm.employeMatricule || '') ||
-      (
-        employee.nom.toLowerCase() === String(rawForm.employeNom || '').toLowerCase() &&
-        employee.prenom.toLowerCase() === String(rawForm.employePrenom || '').toLowerCase()
-      )
+      (employee.nom.toLowerCase() === String(rawForm.employeNom || '').toLowerCase() &&
+        employee.prenom.toLowerCase() === String(rawForm.employePrenom || '').toLowerCase())
   )
 
   return {
@@ -114,8 +116,8 @@ function getStatusChipSx(status) {
   const palette = {
     Brouillon: { bg: '#eaf2ff', color: '#2563eb' },
     Soumise: { bg: '#e8f7ee', color: '#168553' },
-    'Réouverte': { bg: '#eef1ff', color: '#5b5bd6' },
-    'Verrouillée': { bg: '#fff4df', color: '#b7791f' },
+    Réouverte: { bg: '#eef1ff', color: '#5b5bd6' },
+    Verrouillée: { bg: '#fff4df', color: '#b7791f' },
     Disponible: { bg: '#f3f4f6', color: '#475569' },
   }
 
@@ -148,6 +150,7 @@ export default function FicheFormPage() {
   const [feedback, setFeedback] = useState('')
   const [error, setError] = useState('')
   const [ddrhComment, setDdrhComment] = useState(row?.ddrhComment || '')
+  const [pendingAction, setPendingAction] = useState('')
 
   if (!row) {
     return (
@@ -283,6 +286,7 @@ export default function FicheFormPage() {
         ddrhDecision: 'Validee',
         reopened: false,
         locked: false,
+        reopenRequestPending: false,
         status: 'Completee',
         ddrhComment: ddrhComment.trim(),
       }),
@@ -297,6 +301,7 @@ export default function FicheFormPage() {
         ddrhDecision: 'Rejetee',
         reopened: false,
         locked: false,
+        reopenRequestPending: false,
         ddrhComment: ddrhComment.trim(),
       }),
       'La fiche a été rejetée.'
@@ -309,6 +314,7 @@ export default function FicheFormPage() {
         ...item,
         locked: true,
         reopened: false,
+        reopenRequestPending: false,
         ddrhComment: ddrhComment.trim(),
       }),
       'La fiche a été verrouillée.'
@@ -321,6 +327,7 @@ export default function FicheFormPage() {
         ...item,
         reopened: true,
         locked: false,
+        reopenRequestPending: false,
         ddrhDecision: '',
         formStatus: 'Brouillon',
         status: 'En cours',
@@ -330,65 +337,80 @@ export default function FicheFormPage() {
     )
   }
 
+  const handleOpenConfirm = (action) => {
+    setPendingAction(action)
+  }
+
+  const handleCloseConfirm = () => {
+    setPendingAction('')
+  }
+
+  const handleConfirmAction = () => {
+    if (pendingAction === 'validate') handleValidateByDdrh()
+    if (pendingAction === 'reject') handleRejectByDdrh()
+    if (pendingAction === 'reopen') handleReopenByDdrh()
+    if (pendingAction === 'lock') handleLockByDdrh()
+    setPendingAction('')
+  }
+
+  const confirmConfig = {
+    validate: {
+      title: 'Confirmer la validation',
+      message: 'Cette fiche sera validée par la DDRH.',
+      label: 'Valider',
+      color: 'success',
+    },
+    reject: {
+      title: 'Confirmer le rejet',
+      message: 'Cette fiche sera rejetée par la DDRH.',
+      label: 'Rejeter',
+      color: 'error',
+    },
+    reopen: {
+      title: 'Confirmer la réouverture',
+      message: 'La fiche sera réouverte pour correction côté structure.',
+      label: 'Réouvrir',
+      color: 'primary',
+    },
+    lock: {
+      title: 'Confirmer le verrouillage',
+      message: 'La fiche sera verrouillée et ne pourra plus être modifiée.',
+      label: 'Verrouiller',
+      color: 'primary',
+    },
+  }
+
+  const currentConfirm = confirmConfig[pendingAction] || {}
+
   return (
     <MainLayout>
       <Box sx={{ display: 'grid', gap: 3 }}>
-        <Paper
-          elevation={0}
-          sx={{
-            ...sectionPaperSx,
-            background:
-              'linear-gradient(180deg, rgba(248,251,255,0.98) 0%, rgba(255,255,255,1) 100%)',
-          }}
-        >
-          <Stack spacing={1.25}>
-            <Stack
-              direction={{ xs: 'column', md: 'row' }}
-              justifyContent="space-between"
-              spacing={1.5}
-              alignItems={{ xs: 'flex-start', md: 'center' }}
-            >
-              <Box>
-                <Typography sx={{ fontSize: '1.65rem', fontWeight: 800, color: '#1b2740' }}>
-                  {isDdrh ? 'Consultation de la fiche' : 'Remplissage de la fiche'}
-                </Typography>
-                <Typography sx={{ mt: 0.45, fontSize: '0.93rem', color: '#72809a' }}>
-                  {row.manager} • {row.structure}
-                </Typography>
-                <Typography sx={{ mt: 0.25, fontSize: '0.87rem', color: '#8b97ab' }}>
-                  {template.name}
-                </Typography>
-              </Box>
-
-              <Stack direction="row" spacing={1} alignItems="center">
-                {isDdrh ? (
-                  <Chip
-                    label="Lecture DDRH"
-                    size="small"
-                    sx={{ bgcolor: '#eef4ff', color: '#3156d3', fontWeight: 700 }}
-                  />
-                ) : null}
-                <Chip label={statusLabel} size="small" sx={getStatusChipSx(statusLabel)} />
-              </Stack>
-            </Stack>
-
-            <Typography sx={{ color: '#5f6f86', fontSize: '0.92rem', maxWidth: 860 }}>
-              Une fiche peut contenir plusieurs formations, et chaque formation peut concerner un
-              ou plusieurs employés.
-            </Typography>
-          </Stack>
-        </Paper>
+      
 
         {isLocked ? (
-          <Alert severity="warning" icon={<LockRoundedIcon fontSize="inherit" />} sx={{ borderRadius: '14px' }}>
-            Cette fiche a été verrouillée par la DDRH. Elle n’est plus modifiable.
+          <Alert
+            severity="warning"
+            icon={<LockRoundedIcon fontSize="inherit" />}
+            sx={{ borderRadius: '14px' }}
+          >
+            Cette fiche a été verrouillée par la DDRH. Elle n&apos;est plus modifiable.
           </Alert>
         ) : null}
 
         {isSubmitted ? (
-          <Alert severity="info" icon={<InfoOutlinedIcon fontSize="inherit" />} sx={{ borderRadius: '14px' }}>
-            Cette fiche a déjà été soumise. Elle reste en lecture seule tant qu’elle n’est pas
-            réouverte par la DDRH.
+          <Alert
+            severity="info"
+            icon={<InfoOutlinedIcon fontSize="inherit" />}
+            sx={{ borderRadius: '14px' }}
+          >
+            Cette fiche a déjà été soumise. Elle reste en lecture seule tant qu&apos;elle
+            n&apos;est pas réouverte par la DDRH.
+          </Alert>
+        ) : null}
+
+        {isDdrh && row.reopenRequestPending ? (
+          <Alert severity="warning" sx={{ borderRadius: '14px' }}>
+            Une demande de réouverture a été envoyée par la structure pour cette fiche.
           </Alert>
         ) : null}
 
@@ -399,7 +421,11 @@ export default function FicheFormPage() {
         ) : null}
 
         {feedback ? (
-          <Alert severity="success" icon={<CheckCircleRoundedIcon fontSize="inherit" />} sx={{ borderRadius: '14px' }}>
+          <Alert
+            severity="success"
+            icon={<CheckCircleRoundedIcon fontSize="inherit" />}
+            sx={{ borderRadius: '14px' }}
+          >
             {feedback}
           </Alert>
         ) : null}
@@ -417,10 +443,7 @@ export default function FicheFormPage() {
                 Besoins en formation
               </Typography>
 
-              <Alert severity="info" sx={{ borderRadius: '14px' }}>
-                Le directeur de structure est déjà connu via son authentification. La fiche reste
-                modifiable uniquement selon son statut.
-              </Alert>
+        
 
               {form.trainingRequests.map((request, requestIndex) => {
                 const selectedEmployees = employeesDirectory.filter((employee) =>
@@ -446,11 +469,14 @@ export default function FicheFormPage() {
                         alignItems={{ xs: 'flex-start', md: 'center' }}
                       >
                         <Box>
-                          <Typography sx={{ fontWeight: 800, color: '#1b2740', fontSize: '0.98rem' }}>
+                          <Typography
+                            sx={{ fontWeight: 800, color: '#1b2740', fontSize: '0.98rem' }}
+                          >
                             Formation {requestIndex + 1}
                           </Typography>
                           <Typography sx={{ mt: 0.35, fontSize: '0.86rem', color: '#72809a' }}>
-                            Sélectionnez les employés concernés puis décrivez le besoin de formation.
+                            Sélectionnez les employés concernés puis décrivez le besoin de
+                            formation.
                           </Typography>
                         </Box>
 
@@ -480,8 +506,12 @@ export default function FicheFormPage() {
                               value.map((employee) => String(employee.idEmploye))
                             )
                           }
-                          getOptionLabel={(option) => `${option.prenom} ${option.nom} - ${option.poste}`}
-                          isOptionEqualToValue={(option, value) => option.idEmploye === value.idEmploye}
+                          getOptionLabel={(option) =>
+                            `${option.prenom} ${option.nom} - ${option.poste}`
+                          }
+                          isOptionEqualToValue={(option, value) =>
+                            option.idEmploye === value.idEmploye
+                          }
                           limitTags={2}
                           disabled={!canEditForm}
                           sx={modernSelectSx}
@@ -503,7 +533,11 @@ export default function FicheFormPage() {
                             label="Intitulé de la formation *"
                             value={request.intituleFormation}
                             onChange={(event) =>
-                              handleRequestChange(requestIndex, 'intituleFormation', event.target.value)
+                              handleRequestChange(
+                                requestIndex,
+                                'intituleFormation',
+                                event.target.value
+                              )
                             }
                             disabled={!canEditForm}
                             fullWidth
@@ -512,7 +546,11 @@ export default function FicheFormPage() {
                             label="Contexte de la formation"
                             value={request.contexteFormation}
                             onChange={(event) =>
-                              handleRequestChange(requestIndex, 'contexteFormation', event.target.value)
+                              handleRequestChange(
+                                requestIndex,
+                                'contexteFormation',
+                                event.target.value
+                              )
                             }
                             disabled={!canEditForm}
                             fullWidth
@@ -588,7 +626,11 @@ export default function FicheFormPage() {
                             label="Écart comportement"
                             value={request.ecartComportement}
                             onChange={(event) =>
-                              handleRequestChange(requestIndex, 'ecartComportement', event.target.value)
+                              handleRequestChange(
+                                requestIndex,
+                                'ecartComportement',
+                                event.target.value
+                              )
                             }
                             disabled={!canEditForm}
                             fullWidth
@@ -673,7 +715,7 @@ export default function FicheFormPage() {
                   <Button
                     variant="contained"
                     startIcon={<TaskAltRoundedIcon />}
-                    onClick={handleValidateByDdrh}
+                    onClick={() => handleOpenConfirm('validate')}
                     disabled={isLocked}
                     sx={{ borderRadius: '12px', textTransform: 'none', fontWeight: 800 }}
                   >
@@ -682,7 +724,7 @@ export default function FicheFormPage() {
                   <Button
                     variant="outlined"
                     color="error"
-                    onClick={handleRejectByDdrh}
+                    onClick={() => handleOpenConfirm('reject')}
                     disabled={isLocked}
                     sx={{ borderRadius: '12px', textTransform: 'none', fontWeight: 700 }}
                   >
@@ -691,7 +733,7 @@ export default function FicheFormPage() {
                   <Button
                     variant="outlined"
                     startIcon={<UndoRoundedIcon />}
-                    onClick={handleReopenByDdrh}
+                    onClick={() => handleOpenConfirm('reopen')}
                     disabled={isLocked || row.formStatus !== 'Soumise'}
                     sx={{ borderRadius: '12px', textTransform: 'none', fontWeight: 700 }}
                   >
@@ -700,7 +742,7 @@ export default function FicheFormPage() {
                   <Button
                     variant="outlined"
                     startIcon={<LockRoundedIcon />}
-                    onClick={handleLockByDdrh}
+                    onClick={() => handleOpenConfirm('lock')}
                     sx={{ borderRadius: '12px', textTransform: 'none', fontWeight: 700 }}
                   >
                     Verrouiller
@@ -733,6 +775,41 @@ export default function FicheFormPage() {
           ) : null}
         </Box>
       </Box>
+
+      <Dialog open={Boolean(pendingAction)} onClose={handleCloseConfirm} fullWidth maxWidth="sm">
+        <DialogTitle sx={{ fontWeight: 900 }}>
+          {currentConfirm.title || "Confirmer l'action"}
+        </DialogTitle>
+        <DialogContent>
+          <Stack spacing={1.4} sx={{ pt: 0.6 }}>
+            <Typography sx={{ color: '#64748B', fontSize: '0.92rem' }}>
+              {currentConfirm.message}
+            </Typography>
+            {ddrhComment.trim() ? (
+              <Alert severity="info" sx={{ borderRadius: '14px' }}>
+                Le commentaire DDRH saisi sera conservé avec cette action.
+              </Alert>
+            ) : null}
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2.5 }}>
+          <Button onClick={handleCloseConfirm} sx={{ textTransform: 'none' }}>
+            Annuler
+          </Button>
+          <Button
+            variant="contained"
+            color={currentConfirm.color || 'primary'}
+            onClick={handleConfirmAction}
+            sx={{
+              textTransform: 'none',
+              borderRadius: '12px',
+              boxShadow: 'none',
+            }}
+          >
+            {currentConfirm.label || 'Confirmer'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </MainLayout>
   )
 }

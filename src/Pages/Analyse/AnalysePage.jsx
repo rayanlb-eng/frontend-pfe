@@ -18,7 +18,7 @@ import {
   TextField,
   Typography,
 } from '@mui/material'
-import { useEffect, useMemo, useState } from 'react'
+import { createElement, useMemo, useState } from 'react'
 import MainLayout from '../../components/layout/mainLayout'
 import StatCard from '../../components/ui/statcard'
 import { employeesDirectory } from '../Fiches/data/data'
@@ -65,7 +65,7 @@ const selectSx = {
 }
 
 export default function AnalysePage() {
-  const [analyseState, setAnalyseState] = useState({})
+  const [analyseState, setAnalyseState] = useState(() => getStoredAnalyseState())
   const [storageVersion, setStorageVersion] = useState(0)
   const [detailsRowKey, setDetailsRowKey] = useState('')
   const [decisionDialog, setDecisionDialog] = useState({
@@ -75,12 +75,14 @@ export default function AnalysePage() {
     comment: '',
   })
 
-  useEffect(() => {
-    setAnalyseState(getStoredAnalyseState())
-  }, [])
-
-  const trackingRows = useMemo(() => getStoredTrackingRows(), [storageVersion])
-  const formStates = useMemo(() => getStoredFormStates(), [storageVersion])
+  const trackingRows = useMemo(() => {
+    if (storageVersion < 0) return []
+    return getStoredTrackingRows()
+  }, [storageVersion])
+  const formStates = useMemo(() => {
+    if (storageVersion < 0) return {}
+    return getStoredFormStates()
+  }, [storageVersion])
 
   const rows = useMemo(
     () => buildAnalyseRows(trackingRows, formStates, employeesDirectory, analyseState),
@@ -281,7 +283,7 @@ export default function AnalysePage() {
               title={title}
               value={value}
               subtitle={subtitle}
-              icon={<Icon />}
+              icon={createElement(Icon)}
               background={background}
               borderColor={borderColor}
             />
@@ -461,45 +463,46 @@ export default function AnalysePage() {
       <Dialog open={Boolean(detailsRow)} onClose={() => setDetailsRowKey('')} fullWidth maxWidth="md">
         <DialogTitle sx={{ fontWeight: 900 }}>Détail des structures et employés</DialogTitle>
         <DialogContent>
+          {detailsRow ? (
           <Stack spacing={2} sx={{ pt: 0.6 }}>
             <Box>
               <Typography sx={{ fontWeight: 800, color: '#172033' }}>
-                {detailsRow?.formation}
+                {detailsRow.formation}
               </Typography>
               <Stack direction="row" spacing={1} sx={{ mt: 0.8, flexWrap: 'wrap' }}>
                 <Chip
                   size="small"
-                  label={detailsRow?.decision || 'À décider'}
+                  label={detailsRow.decision || 'À décider'}
                   sx={{
-                    bgcolor: `${getDecisionColor(detailsRow?.decision)}18`,
-                    color: getDecisionColor(detailsRow?.decision),
+                    bgcolor: `${getDecisionColor(detailsRow.decision)}18`,
+                    color: getDecisionColor(detailsRow.decision),
                     fontWeight: 800,
                     borderRadius: '10px',
                   }}
                 />
                 <Chip
                   size="small"
-                  label={`Priorité ${detailsRow?.priorite || ''}`}
+                  label={`Priorité ${detailsRow.priorite || ''}`}
                   sx={{
-                    bgcolor: `${getPriorityColor(detailsRow?.priorite)}18`,
-                    color: getPriorityColor(detailsRow?.priorite),
+                    bgcolor: `${getPriorityColor(detailsRow.priorite)}18`,
+                    color: getPriorityColor(detailsRow.priorite),
                     fontWeight: 800,
                     borderRadius: '10px',
                   }}
                 />
               </Stack>
               <Typography sx={{ mt: 0.8, color: '#64748B', fontSize: '0.9rem' }}>
-                {detailsRow?.structuresCount} structure(s) et {detailsRow?.employeesCount} employé(s)
+                {detailsRow.structuresCount} structure(s) et {detailsRow.employeesCount} employé(s)
                 {' '}concernés par cette formation.
               </Typography>
-              {detailsRow?.comment ? (
+              {detailsRow.comment ? (
                 <Alert severity="info" sx={{ mt: 1.2, borderRadius: '14px' }}>
                   <strong>Commentaire DDRH :</strong> {detailsRow.comment}
                 </Alert>
               ) : null}
             </Box>
 
-            {detailsRow?.structures.map((structure) => {
+            {detailsRow.structures.map((structure) => {
               const structureEmployees = detailsRow.employees.filter(
                 (employee) => employee.structure === structure.structure
               )
@@ -568,6 +571,7 @@ export default function AnalysePage() {
               )
             })}
           </Stack>
+          ) : null}
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2.5, justifyContent: 'space-between', gap: 1, flexWrap: 'wrap' }}>
           <Button onClick={() => setDetailsRowKey('')} sx={{ textTransform: 'none' }}>
@@ -617,11 +621,12 @@ export default function AnalysePage() {
               : 'Confirmer la décision non justifiée'}
         </DialogTitle>
         <DialogContent>
+          {decisionRow ? (
           <Stack spacing={1.4} sx={{ pt: 0.6 }}>
             <Typography sx={{ color: '#64748B', fontSize: '0.92rem' }}>
               Formation concernée :{' '}
               <Box component="span" sx={{ fontWeight: 800, color: '#172033' }}>
-                {decisionRow?.formation}
+                {decisionRow.formation}
               </Box>
             </Typography>
 
@@ -658,6 +663,7 @@ export default function AnalysePage() {
               </>
             ) : null}
           </Stack>
+          ) : null}
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2.5 }}>
           <Button onClick={handleCloseDecisionDialog} sx={{ textTransform: 'none' }}>

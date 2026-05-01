@@ -41,7 +41,7 @@ export default function TwoFactorPage() {
     return raw ? JSON.parse(raw) : null
   }, [])
 
-  const isMandatoryProfile = Boolean(pendingAuth?.twoFactorRequired)
+  const isMandatoryProfile = Boolean(pendingAuth.twoFactorRequired)
 
   useEffect(() => {
     if (!pendingAuth) {
@@ -220,9 +220,10 @@ export default function TwoFactorPage() {
               }
               label={
                 <Typography sx={{ fontSize: '0.9rem', color: '#5D7367', fontWeight: 500 }}>
-                  {isMandatoryProfile
-                    ? "Memorisation indisponible pour ce profil"
-                    : 'Se souvenir de moi sur cet appareil'}
+                    {isMandatoryProfile
+                      ?
+                      "Memorisation indisponible pour ce profil"
+                      : 'Se souvenir de moi sur cet appareil'}
                 </Typography>
               }
             />

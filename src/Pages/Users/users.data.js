@@ -42,7 +42,7 @@ export const stats = [
 export const initialUsers = [
   {
     name: 'Yasmine Benaissa',
-    title: 'Administratrice plateforme',
+    title: 'Administratrice de la plateforme',
     accessRole: 'DDRH',
     department: 'DDRH',
     email: 'y.benaissa@mobilis.dz',
@@ -78,7 +78,7 @@ export const initialUsers = [
   },
   {
     name: 'Samir Touati',
-    title: 'Consultation',
+    title: 'Consultant interne',
     accessRole: 'Employeur',
     department: 'Audit interne',
     email: 's.touati@mobilis.dz',

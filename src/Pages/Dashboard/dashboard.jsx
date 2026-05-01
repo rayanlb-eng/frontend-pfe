@@ -1,4 +1,5 @@
 import { Box, Button, Chip, Paper, Stack, Typography } from '@mui/material'
+import { createElement } from 'react'
 import {
   Bar,
   BarChart,
@@ -92,7 +93,7 @@ function DashboardStatsGrid({ stats }) {
           title={title}
           value={value}
           subtitle={subtitle}
-          icon={<Icon />}
+          icon={createElement(Icon)}
           background={background}
           borderColor={borderColor}
         />
@@ -229,7 +230,7 @@ function DashboardQuickActions({ quickBlock }) {
         {quickBlock.items.map(({ title, subtitle, background, Icon }) => (
           <Paper key={title} elevation={0} sx={quickActionCardSx(background)}>
             <Box sx={floatingIconSx}>
-              <Icon />
+              {createElement(Icon)}
             </Box>
 
             <Typography

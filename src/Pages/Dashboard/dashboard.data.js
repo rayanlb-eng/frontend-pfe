@@ -18,13 +18,6 @@ import { getStoredUsers } from '../Users/users.data'
 
 const defaultAccent = 'rgba(255,255,255,0.16)'
 
-const trackingStatusPalette = {
-  Envoyee: '#f59e0b',
-  Consultee: '#2563eb',
-  'En cours': '#7c3aed',
-  Completee: '#0f9d58',
-}
-
 const formStatusPalette = {
   'Non ouverte': '#f59e0b',
   Brouillon: '#2563eb',
@@ -61,40 +54,52 @@ function formatShortDate(dateValue) {
 function getRowsWithRecipientMeta() {
   return getStoredTrackingRows().map((row) => ({
     ...row,
-    recipientEmail: recipientById.get(row.recipientId)?.email || '',
+    recipientEmail: recipientById.get(row.recipientId).email || '',
   }))
 }
 
 function getTrainingLabel(formState) {
-  if (Array.isArray(formState?.trainingRequests) && formState.trainingRequests.length > 0) {
+  if (!formState) {
+    return 'Formation a preciser'
+  }
+
+  if (Array.isArray(formState.trainingRequests) && formState.trainingRequests.length > 0) {
     return (
-      formState.trainingRequests[0]?.intituleFormation ||
+      formState.trainingRequests[0].intituleFormation ||
       'Formation a preciser'
     )
   }
 
-  return formState?.intituleFormation || 'Formation a preciser'
+  return formState.intituleFormation || 'Formation a preciser'
 }
 
 function getTrainingRequestCount(formState) {
-  if (Array.isArray(formState?.trainingRequests) && formState.trainingRequests.length > 0) {
+  if (!formState) {
+    return 0
+  }
+
+  if (Array.isArray(formState.trainingRequests) && formState.trainingRequests.length > 0) {
     return formState.trainingRequests.length
   }
 
-  return formState?.intituleFormation ? 1 : 0
+  return formState.intituleFormation ? 1 : 0
 }
 
 function getRequestedEmployeesCount(formState) {
-  if (Array.isArray(formState?.trainingRequests) && formState.trainingRequests.length > 0) {
+  if (!formState) {
+    return 0
+  }
+
+  if (Array.isArray(formState.trainingRequests) && formState.trainingRequests.length > 0) {
     const uniqueEmployees = new Set(
       formState.trainingRequests.flatMap((request) =>
-        Array.isArray(request?.employeeIds) ? request.employeeIds : []
+        Array.isArray(request.employeeIds) ? request.employeeIds : []
       )
     )
     return uniqueEmployees.size
   }
 
-  return formState?.employeMatricule ? 1 : 0
+  return formState.employeMatricule ? 1 : 0
 }
 
 function formatDeadline(deadline) {
@@ -149,18 +154,6 @@ function buildTimelineData(rows) {
   }))
 }
 
-function buildStructureBarData(rows) {
-  const grouped = rows.reduce((accumulator, row) => {
-    accumulator[row.structure] = (accumulator[row.structure] || 0) + 1
-    return accumulator
-  }, {})
-
-  return Object.entries(grouped)
-    .map(([structure, total]) => ({ label: structure, value: total }))
-    .sort((left, right) => right.value - left.value)
-    .slice(0, 5)
-}
-
 function buildTrainingBarData(rows, forms) {
   const grouped = rows.reduce((accumulator, row) => {
     const label = getTrainingLabel(forms[row.id])
@@ -176,14 +169,14 @@ function buildTrainingBarData(rows, forms) {
 
 function getFormRequestsList(forms) {
   return Object.entries(forms).flatMap(([trackingId, form]) => {
-    if (Array.isArray(form?.trainingRequests) && form.trainingRequests.length > 0) {
+    if (Array.isArray(form.trainingRequests) && form.trainingRequests.length > 0) {
       return form.trainingRequests.map((request) => ({
         trackingId,
         ...request,
       }))
     }
 
-    if (form?.intituleFormation) {
+    if (form.intituleFormation) {
       return [{ trackingId, ...form }]
     }
 
@@ -193,7 +186,7 @@ function getFormRequestsList(forms) {
 
 function buildTrainingYearsData(forms) {
   const grouped = getFormRequestsList(forms).reduce((accumulator, request) => {
-    const year = String(request?.echeance || '').slice(0, 4) || 'Sans date'
+    const year = String(request.echeance || '').slice(0, 4) || 'Sans date'
     accumulator[year] = (accumulator[year] || 0) + 1
     return accumulator
   }, {})
@@ -247,7 +240,7 @@ function buildPendingStructuresRows(rows) {
 
 function buildTopRequestedTrainings(forms) {
   const grouped = getFormRequestsList(forms).reduce((accumulator, request) => {
-    const label = request?.intituleFormation || 'Formation a preciser'
+    const label = request.intituleFormation || 'Formation a preciser'
     accumulator[label] = (accumulator[label] || 0) + 1
     return accumulator
   }, {})
@@ -280,87 +273,31 @@ function buildPieDataFromFormStatus(rows) {
   }))
 }
 
-function buildRecentItems(rows, forms) {
-  return [...rows]
-    .sort((left, right) => parseTrackingDate(right.sentAt) - parseTrackingDate(left.sentAt))
-    .slice(0, 4)
-    .map((row) => ({
-      structure: row.structure,
-      domain: getTrainingLabel(forms[row.id]),
-      submittedAt: row.sentAt,
-      status: row.formStatus,
-      color: formStatusPalette[row.formStatus] || '#94a3b8',
-    }))
-}
-
-function buildDdrhAlerts(rows, notifications) {
-  const pendingRows = rows.filter((row) => row.formStatus !== 'Soumise').length
-  const unreadNotifications = notifications.filter((item) => !item.read).length
-  const reopenedRows = rows.filter((row) => row.reopened).length
-
-  return [
-    {
-      title: `${pendingRows} fiches attendent encore une soumission complete`,
-      type: 'warning',
-    },
-    {
-      title: `${unreadNotifications} notifications restent a traiter par la DDRH`,
-      type: 'danger',
-    },
-    {
-      title: `${reopenedRows} fiches sont actuellement reouvertes pour correction`,
-      type: 'success',
-    },
-  ]
-}
-
-function buildEmployerAlerts(rows, notifications) {
-  const drafts = rows.filter((row) => row.formStatus === 'Brouillon').length
-  const unopened = rows.filter((row) => row.formStatus === 'Non ouverte').length
-  const reopened = rows.filter((row) => row.reopened).length
-  const unreadNotifications = notifications.filter((item) => !item.read).length
-
-  return [
-    {
-      title: `${drafts} brouillons doivent encore etre completes avant soumission`,
-      type: 'warning',
-    },
-    {
-      title: `${unopened} fiches n'ont pas encore ete ouvertes`,
-      type: 'danger',
-    },
-    {
-      title: `${reopened} fiches ont ete reouvertes par la DDRH et ${unreadNotifications} notifications sont en attente`,
-      type: 'success',
-    },
-  ]
-}
-
 function buildEmployerNotificationItems(notifications, currentRow, currentForm) {
   const items = []
 
-  if (currentRow?.formStatus === 'Non ouverte') {
+  if (currentRow.formStatus === 'Non ouverte') {
     items.push({
       title: 'Fiche disponible pour demarrer la saisie des besoins',
       type: 'warning',
     })
   }
 
-  if (currentForm?.echeance && currentRow?.formStatus !== 'Soumise') {
+  if (currentForm.echeance && currentRow.formStatus !== 'Soumise') {
     items.push({
       title: `Rappel avant date limite : echeance fixee au ${formatDeadline(currentForm.echeance)}`,
       type: 'warning',
     })
   }
 
-  if (currentRow?.formStatus === 'Soumise') {
+  if (currentRow.formStatus === 'Soumise') {
     items.push({
       title: 'Confirmation de soumission envoyee a la DDRH',
       type: 'success',
     })
   }
 
-  if (currentRow?.reopened) {
+  if (currentRow.reopened) {
     items.push({
       title: 'La DDRH a demande une correction ou une precision sur votre fiche',
       type: 'danger',
@@ -378,9 +315,9 @@ function buildEmployerNotificationItems(notifications, currentRow, currentForm) 
 }
 
 function buildEmployerReviewTable(currentRow, currentForm, notifications) {
-  const trainingRequests = Array.isArray(currentForm?.trainingRequests)
+  const trainingRequests = Array.isArray(currentForm.trainingRequests)
     ? currentForm.trainingRequests
-    : currentForm?.intituleFormation
+    : currentForm.intituleFormation
       ? [currentForm]
       : []
 
@@ -389,39 +326,39 @@ function buildEmployerReviewTable(currentRow, currentForm, notifications) {
   return {
     notifications: notificationItems,
     items: trainingRequests.map((request, index) => {
-      const formation = request?.intituleFormation || `Formation ${index + 1}`
-      const employeesCount = Array.isArray(request?.employeeIds) ? request.employeeIds.length : 0
+      const formation = request.intituleFormation || `Formation ${index + 1}`
+      const employeesCount = Array.isArray(request.employeeIds) ? request.employeeIds.length : 0
 
       let status = 'En attente DDRH'
       let color = '#f59e0b'
-      let comment = currentRow?.ddrhComment || 'Aucun retour DDRH pour le moment.'
+      let comment = currentRow.ddrhComment || 'Aucun retour DDRH pour le moment.'
 
-      if (currentRow?.locked && currentRow?.status === 'Completee') {
+      if (currentRow.locked && currentRow.status === 'Completee') {
         status = 'Acceptee'
         color = '#0f9d58'
-        comment = currentRow?.ddrhComment || 'Demande retenue dans la consolidation finale.'
-      } else if (currentRow?.locked && currentRow?.status !== 'Completee') {
+        comment = currentRow.ddrhComment || 'Demande retenue dans la consolidation finale.'
+      } else if (currentRow.locked && currentRow.status !== 'Completee') {
         status = 'Rejetee'
         color = '#db5c74'
         comment =
-          currentRow?.ddrhComment || 'Demande non retenue au regard du budget ou des priorites.'
-      } else if (currentRow?.reopened) {
+          currentRow.ddrhComment || 'Demande non retenue au regard du budget ou des priorites.'
+      } else if (currentRow.reopened) {
         status = 'Observation DDRH'
         color = '#2563eb'
         comment =
-          currentRow?.ddrhComment ||
+          currentRow.ddrhComment ||
           'Merci de completer ou corriger la justification avant nouvelle soumission.'
-      } else if (currentRow?.formStatus === 'Soumise') {
+      } else if (currentRow.formStatus === 'Soumise') {
         status = 'En analyse'
         color = '#7c3aed'
-        comment = currentRow?.ddrhComment || 'La DDRH examine actuellement cette demande.'
+        comment = currentRow.ddrhComment || 'La DDRH examine actuellement cette demande.'
       }
 
       return {
         formation,
         status,
         color,
-        priority: request?.echeance ? `Echeance ${formatDeadline(request.echeance)}` : 'Priorite standard',
+        priority: request.echeance ? `Echeance ${formatDeadline(request.echeance)}` : 'Priorite standard',
         employeesCount,
         comment,
       }
@@ -541,7 +478,6 @@ export function buildEmployerDashboardModel(connectedEmail) {
   const unopened = rows.filter((row) => row.formStatus === 'Non ouverte')
   const currentRow = getEmployerCurrentRow(rows)
   const currentForm = currentRow ? forms[currentRow.id] || {} : null
-  const currentTrainingLabel = currentForm ? getTrainingLabel(currentForm) : 'Aucune fiche active'
   const currentTrainingCount = currentForm ? getTrainingRequestCount(currentForm) : 0
   const requestedEmployeesCount = currentForm ? getRequestedEmployeesCount(currentForm) : 0
   const currentStatusLabel = getEmployerStatusLabel(currentRow)
@@ -619,17 +555,17 @@ export function buildEmployerDashboardModel(connectedEmail) {
     focusBlock: {
       title: 'Bloc principal',
       subtitle: 'Une fiche contient une ou plusieurs formations et plusieurs employes par formation',
-      trackingId: currentRow?.id || '',
-      ficheLabel: currentRow?.templateName || 'Aucune fiche active',
+      trackingId: currentRow.id || '',
+      ficheLabel: currentRow.templateName || 'Aucune fiche active',
       statusLabel: currentStatusLabel,
       deadlineLabel: currentForm?.echeance ? formatDeadline(currentForm.echeance) : 'Non definie',
       trainingCount: currentTrainingCount,
       buttonLabel:
-        currentRow?.formStatus === 'Soumise' && !currentRow?.reopened
+        currentRow.formStatus === 'Soumise' && !currentRow.reopened
           ? 'Voir ma fiche'
           : 'Continuer le brouillon',
       messages: [
-        ...(currentRow?.reopened
+        ...(currentRow.reopened
           ? [
               {
                 text: 'Votre fiche a ete reouverte par la DDRH pour correction.',
@@ -639,7 +575,7 @@ export function buildEmployerDashboardModel(connectedEmail) {
               },
             ]
           : []),
-        ...(currentRow?.locked
+        ...(currentRow.locked
           ? [
               {
                 text: 'Votre fiche est verrouillee par la DDRH. Elle n’est plus modifiable.',

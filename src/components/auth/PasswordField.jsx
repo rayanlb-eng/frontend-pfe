@@ -16,7 +16,6 @@ function PasswordField({ label, value, onChange, visible, onToggle, disabled = f
         aria-label={visible ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
         sx={{
           color: canToggleVisibility ? '#00A651' : '#9FB6A8',
-        
           '&:hover': {
             background: canToggleVisibility
               ? 'rgba(0,166,81,0.14)'

@@ -19,6 +19,7 @@ import {
   TextField,
   Typography,
 } from '@mui/material'
+import { createElement } from 'react'
 import { useEffect, useMemo, useState } from 'react'
 import MainLayout from '../../components/layout/mainLayout'
 import {
@@ -58,15 +59,11 @@ export default function Users() {
   const [selectedDepartment, setSelectedDepartment] = useState(filters.department[0])
   const [feedback, setFeedback] = useState('')
   const [selectedUser, setSelectedUser] = useState(null)
-  const [dialogOpen, setDialogOpen] = useState(false)
   const [formDialogOpen, setFormDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-  const [connectedUserRole, setConnectedUserRole] = useState('DDRH')
-
-  useEffect(() => {
-    const storedRole = localStorage.getItem(CONNECTED_USER_ROLE_KEY) || 'DDRH'
-    setConnectedUserRole(storedRole)
-  }, [])
+  const [connectedUserRole] = useState(
+    () => localStorage.getItem(CONNECTED_USER_ROLE_KEY) || 'DDRH'
+  )
 
   useEffect(() => {
     saveUsers(users)
@@ -97,25 +94,30 @@ export default function Users() {
     })
   }, [users, searchTerm, selectedRole, selectedStatus, selectedDepartment])
 
-  useEffect(() => {
+  const passiveFeedback = useMemo(() => {
     if (!canManageRoles) {
-      setFeedback("Acces refuse : seul un profil DDRH peut gerer les roles et permissions.")
-      return
+      return "Acces refuse : seul un profil DDRH peut gerer les roles et permissions."
     }
 
-    if ((searchTerm.trim() || selectedRole !== filters.roles[0] || selectedStatus !== filters.status[0] || selectedDepartment !== filters.department[0]) && filteredUsers.length === 0) {
-      setFeedback("Utilisateur introuvable ou aucun resultat pour les filtres selectionnes.")
-      return
+    if (
+      (searchTerm.trim() ||
+        selectedRole !== filters.roles[0] ||
+        selectedStatus !== filters.status[0] ||
+        selectedDepartment !== filters.department[0]) &&
+      filteredUsers.length === 0
+    ) {
+      return 'Utilisateur introuvable ou aucun resultat pour les filtres selectionnes.'
     }
 
-    setFeedback('')
-  }, [canManageRoles, filteredUsers.length, searchTerm, selectedDepartment, selectedRole, selectedStatus])
-
-  const handleEditRole = (user) => {
-    if (!canManageRoles) return
-    setSelectedUser(user)
-    setDialogOpen(true)
-  }
+    return ''
+  }, [
+    canManageRoles,
+    filteredUsers.length,
+    searchTerm,
+    selectedDepartment,
+    selectedRole,
+    selectedStatus,
+  ])
 
   const handleOpenAddUser = () => {
     if (!canManageRoles) return
@@ -165,26 +167,6 @@ export default function Users() {
     setUsers((currentUsers) => currentUsers.filter((user) => user.email !== selectedUser.email))
     setFeedback(`${selectedUser.name} a ete supprime de la liste des utilisateurs.`)
     setDeleteDialogOpen(false)
-    setSelectedUser(null)
-  }
-
-  // Met a jour uniquement le role et la couleur d'etat associee au profil.
-  const handleSaveRole = (nextRole) => {
-    if (!selectedUser) return
-
-    setUsers((currentUsers) =>
-      currentUsers.map((user) =>
-        user.email === selectedUser.email
-          ? {
-              ...user,
-              accessRole: nextRole,
-              badgeColor: nextRole === 'DDRH' ? '#7c3aed' : '#2563eb',
-            }
-          : user
-      )
-    )
-    setFeedback(`Le role de ${selectedUser.name} a ete mis a jour avec succes.`)
-    setDialogOpen(false)
     setSelectedUser(null)
   }
 
@@ -258,16 +240,17 @@ export default function Users() {
                 : "Le systeme refuse l'acces a la gestion des roles pour un employeur."}
             </Alert>
 
-            {feedback ? (
+            {feedback || passiveFeedback ? (
               <Alert
                 severity={
-                  feedback.includes('introuvable') || feedback.includes('Acces refuse')
+                  (feedback || passiveFeedback).includes('introuvable') ||
+                  (feedback || passiveFeedback).includes('Acces refuse')
                     ? 'error'
                     : 'success'
                 }
                 sx={{ borderRadius: '14px' }}
               >
-                {feedback}
+                {feedback || passiveFeedback}
               </Alert>
             ) : null}
 
@@ -283,7 +266,7 @@ export default function Users() {
                 }}
               >
                 <Typography sx={{ fontWeight: 800, color: '#1b2740' }}>
-                  Aucun utilisateur trouve
+                  Aucun utilisateur trouve.
                 </Typography>
                 <Typography sx={{ mt: 0.5, fontSize: '0.9rem', color: '#72809a' }}>
                   Essayez un autre nom, un autre role ou un autre filtre.
@@ -296,7 +279,7 @@ export default function Users() {
                     key={user.email}
                     user={user}
                     canManageRoles={canManageRoles}
-                    onEditRole={handleOpenEditUser}
+                    onEditUser={handleOpenEditUser}
                     onRevokeAccess={handleRevokeAccess}
                     onToggleMandatory2FA={handleToggleMandatory2FA}
                     onDeleteUser={handleOpenDeleteUser}
@@ -305,17 +288,8 @@ export default function Users() {
               </Box>
             )}
 
-            <UserRoleDialog
-              open={dialogOpen}
-              selectedUser={selectedUser}
-              onClose={() => {
-                setDialogOpen(false)
-                setSelectedUser(null)
-              }}
-              onSave={handleSaveRole}
-            />
-
             <UserFormDialog
+              key={selectedUser?.email || 'new-user'}
               open={formDialogOpen}
               initialUser={selectedUser}
               onClose={() => {
@@ -347,7 +321,7 @@ function UsersStatsGrid({ stats }) {
       {stats.map(({ title, value, subtitle, background, Icon }) => (
         <Paper key={title} elevation={0} sx={statCardSx(background)}>
           <Box sx={statIconWrapSx}>
-            <Icon />
+            {createElement(Icon)}
           </Box>
 
           <Typography sx={statTitleSx}>{title}</Typography>
@@ -373,8 +347,8 @@ function UsersToolbar({
   onAddUser,
 }) {
   return (
-    <Stack {...toolbarWrapSx}>
-      <Stack {...toolbarTopRowSx}>
+    <Stack sx={toolbarWrapSx}>
+      <Stack sx={toolbarTopRowSx}>
         <Box sx={searchBoxSx}>
           <SearchRoundedIcon sx={{ color: '#8a97ad', fontSize: 20 }} />
           <TextField
@@ -405,7 +379,7 @@ function UsersToolbar({
         </Stack>
       </Stack>
 
-      <Stack {...filtersRowSx}>
+      <Stack sx={filtersRowSx}>
         <TextField
           select
           fullWidth
@@ -458,7 +432,7 @@ function UsersToolbar({
 function UserCard({
   user,
   canManageRoles,
-  onEditRole,
+  onEditUser,
   onRevokeAccess,
   onDeleteUser,
   onToggleMandatory2FA,
@@ -507,11 +481,11 @@ function UserCard({
           </Stack>
         </Stack>
 
-        <Stack direction="row" spacing={1} flexWrap="wrap">
+        <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap' }}>
           <Button
             variant="contained"
             size="small"
-            onClick={() => onEditRole(user)}
+            onClick={() => onEditUser(user)}
             disabled={!canManageRoles}
             sx={userPrimaryActionSx(user.badgeColor)}
           >
@@ -553,67 +527,9 @@ function UserCard({
   )
 }
 
-function UserRoleDialog({ open, selectedUser, onClose, onSave }) {
-  const [role, setRole] = useState(selectedUser?.accessRole || 'Employeur')
-
-  useEffect(() => {
-    setRole(selectedUser?.accessRole || 'Employeur')
-  }, [selectedUser])
-
-  return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="xs">
-      <DialogTitle sx={{ fontWeight: 800 }}>Modifier le role</DialogTitle>
-      <DialogContent sx={{ pt: 1 }}>
-        <Stack spacing={1.6} sx={{ mt: 0.4 }}>
-          <Typography sx={{ fontSize: '0.9rem', color: '#5f6f86' }}>
-            Utilisateur selectionne : <strong>{selectedUser?.name}</strong>
-          </Typography>
-
-          <TextField
-            select
-            fullWidth
-            label="Nouveau role"
-            value={role}
-            onChange={(event) => setRole(event.target.value)}
-          >
-            <MenuItem value="DDRH">DDRH</MenuItem>
-            <MenuItem value="Employeur">Employeur</MenuItem>
-          </TextField>
-        </Stack>
-      </DialogContent>
-      <DialogActions sx={{ px: 3, pb: 2 }}>
-        <Button onClick={onClose} sx={{ textTransform: 'none', fontWeight: 700 }}>
-          Annuler
-        </Button>
-        <Button variant="contained" onClick={() => onSave(role)} sx={{ textTransform: 'none', fontWeight: 700 }}>
-          Enregistrer
-        </Button>
-      </DialogActions>
-    </Dialog>
-  )
-}
-
 function UserFormDialog({ open, initialUser, onClose, onSave }) {
-  const [form, setForm] = useState({
-    name: '',
-    title: '',
-    accessRole: 'Employeur',
-    department: 'Formation',
-    email: '',
-    phone: '',
-    status: 'Actif',
-    twoFactorRequired: false,
-    badgeColor: '#2563eb',
-    avatar: 'U',
-  })
-
-  useEffect(() => {
-    if (initialUser) {
-      setForm(initialUser)
-      return
-    }
-
-    setForm({
+  const [form, setForm] = useState(() =>
+    initialUser || {
       name: '',
       title: '',
       accessRole: 'Employeur',
@@ -624,8 +540,8 @@ function UserFormDialog({ open, initialUser, onClose, onSave }) {
       twoFactorRequired: false,
       badgeColor: '#2563eb',
       avatar: 'U',
-    })
-  }, [initialUser, open])
+    }
+  )
 
   const handleChange = (field, value) => {
     setForm((currentForm) => ({ ...currentForm, [field]: value }))
@@ -705,7 +621,7 @@ function UserDeleteDialog({ open, selectedUser, onClose, onConfirm }) {
       <DialogTitle sx={{ fontWeight: 800 }}>Supprimer l'utilisateur</DialogTitle>
       <DialogContent sx={{ pt: 1 }}>
         <Typography sx={{ fontSize: '0.92rem', color: '#5f6f86', mt: 0.5 }}>
-          Confirmer la suppression de <strong>{selectedUser?.name}</strong> ?
+          Confirmer la suppression de <strong>{selectedUser?.name || 'cet utilisateur'}</strong>.
         </Typography>
       </DialogContent>
       <DialogActions sx={{ px: 3, pb: 2 }}>

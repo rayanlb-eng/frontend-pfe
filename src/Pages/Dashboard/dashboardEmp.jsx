@@ -1,4 +1,5 @@
 import { Box, Button, Chip, Paper, Stack, Typography } from '@mui/material'
+import { createElement } from 'react'
 import { useNavigate } from 'react-router-dom'
 import MainLayout from '../../components/layout/mainLayout'
 import ChartCard from '../../components/ui/chartCard'
@@ -34,7 +35,7 @@ function DashboardStatsGrid({ stats }) {
           title={title}
           value={value}
           subtitle={subtitle}
-          icon={<Icon />}
+          icon={createElement(Icon)}
           background={background}
           borderColor={borderColor}
         />
@@ -115,7 +116,7 @@ function EmployerReviewTable({ reviewBlock }) {
   return (
     <ChartCard title={reviewBlock.title} subtitle={reviewBlock.subtitle}>
       <Stack sx={recentListSx}>
-        {reviewBlock.notifications?.map((notification) => (
+        {reviewBlock.notifications.map((notification) => (
           <Paper
             key={notification.title}
             elevation={0}
@@ -191,7 +192,7 @@ function DashboardQuickActions({ quickBlock }) {
         {quickBlock.items.map(({ title, subtitle, background, Icon }) => (
           <Paper key={title} elevation={0} sx={quickActionCardSx(background)}>
             <Box sx={floatingIconSx}>
-              <Icon />
+              {createElement(Icon)}
             </Box>
 
             <Typography
@@ -236,7 +237,7 @@ export default function DashboardEmp({ dashboardModel }) {
             <EmployerMainPanel
               focusBlock={dashboardModel.focusBlock}
               onOpenForm={() =>
-                dashboardModel.focusBlock?.trackingId
+                dashboardModel.focusBlock.trackingId
                   ? navigate(`/fiches/form/${dashboardModel.focusBlock.trackingId}`)
                   : undefined
               }

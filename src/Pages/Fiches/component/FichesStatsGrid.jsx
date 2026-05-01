@@ -1,4 +1,5 @@
 import { Box, Paper, Typography } from '@mui/material'
+import { createElement } from 'react'
 
 export default function FichesStatsGrid({ stats }) {
   return (
@@ -51,7 +52,7 @@ export default function FichesStatsGrid({ stats }) {
               '& svg': { fontSize: 32 },
             }}
           >
-            <Icon />
+            {createElement(Icon)}
           </Box>
           <Typography
             sx={{ fontSize: '0.95rem', color: 'rgba(255,255,255,0.92)', fontWeight: 700 }}

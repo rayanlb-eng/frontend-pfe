@@ -45,14 +45,7 @@ export default function FichesTrackingTable({
         </Box>
 
         <Box sx={trackingTableWrapSx}>
-          <Table
-            size="small"
-            sx={{
-              minWidth: 0,
-              width: '100%',
-              tableLayout: 'fixed',
-            }}
-          >
+          <Table size="small" sx={{ minWidth: 0, width: '100%', tableLayout: 'fixed' }}>
             <TableHead>
               <TableRow sx={{ bgcolor: '#f7fafc' }}>
                 <TableCell sx={tableHeadCellSx}>Fiche</TableCell>
@@ -70,12 +63,8 @@ export default function FichesTrackingTable({
                 <TableRow
                   key={row.id}
                   sx={{
-                    '&:nth-of-type(even)': {
-                      background: '#fbfdff',
-                    },
-                    '&:hover': {
-                      background: '#f3f8fd',
-                    },
+                    '&:nth-of-type(even)': { background: '#fbfdff' },
+                    '&:hover': { background: '#f3f8fd' },
                   }}
                 >
                   <TableCell sx={tableBodyCellSx}>
