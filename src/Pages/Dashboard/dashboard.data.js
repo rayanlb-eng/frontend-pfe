@@ -2,12 +2,9 @@ import AssessmentRoundedIcon from '@mui/icons-material/AssessmentRounded'
 import AssignmentTurnedInRoundedIcon from '@mui/icons-material/AssignmentTurnedInRounded'
 import DescriptionRoundedIcon from '@mui/icons-material/DescriptionRounded'
 import DraftsRoundedIcon from '@mui/icons-material/DraftsRounded'
-import FileDownloadRoundedIcon from '@mui/icons-material/FileDownloadRounded'
-import NotificationsActiveRoundedIcon from '@mui/icons-material/NotificationsActiveRounded'
 import PeopleAltRoundedIcon from '@mui/icons-material/PeopleAltRounded'
 import ScheduleRoundedIcon from '@mui/icons-material/ScheduleRounded'
 import ShieldRoundedIcon from '@mui/icons-material/ShieldRounded'
-import TrendingUpRoundedIcon from '@mui/icons-material/TrendingUpRounded'
 import { structureRecipients } from '../Fiches/data/data'
 import {
   getStoredFormStates,
@@ -31,9 +28,7 @@ const quickActionPalette = {
   accent: 'linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)',
 }
 
-const recipientById = new Map(
-  structureRecipients.map((recipient) => [recipient.id, recipient])
-)
+const recipientById = new Map(structureRecipients.map((recipient) => [recipient.id, recipient]))
 
 function parseTrackingDate(value) {
   const [day, month, year] = String(value || '').split('/')
@@ -54,7 +49,7 @@ function formatShortDate(dateValue) {
 function getRowsWithRecipientMeta() {
   return getStoredTrackingRows().map((row) => ({
     ...row,
-    recipientEmail: recipientById.get(row.recipientId).email || '',
+    recipientEmail: recipientById.get(row.recipientId)?.email || '',
   }))
 }
 
@@ -64,10 +59,7 @@ function getTrainingLabel(formState) {
   }
 
   if (Array.isArray(formState.trainingRequests) && formState.trainingRequests.length > 0) {
-    return (
-      formState.trainingRequests[0].intituleFormation ||
-      'Formation a preciser'
-    )
+    return formState.trainingRequests[0].intituleFormation || 'Formation a preciser'
   }
 
   return formState.intituleFormation || 'Formation a preciser'
@@ -113,8 +105,28 @@ function getEmployerCurrentRow(rows) {
   if (rows.length === 0) return null
 
   const ordered = [...rows].sort((left, right) => {
-    const leftScore = left.locked ? 1 : left.reopened ? 5 : left.formStatus === 'Brouillon' ? 4 : left.formStatus === 'Non ouverte' ? 3 : left.formStatus === 'Soumise' ? 2 : 0
-    const rightScore = right.locked ? 1 : right.reopened ? 5 : right.formStatus === 'Brouillon' ? 4 : right.formStatus === 'Non ouverte' ? 3 : right.formStatus === 'Soumise' ? 2 : 0
+    const leftScore = left.locked
+      ? 1
+      : left.reopened
+        ? 5
+        : left.formStatus === 'Brouillon'
+          ? 4
+          : left.formStatus === 'Non ouverte'
+            ? 3
+            : left.formStatus === 'Soumise'
+              ? 2
+              : 0
+    const rightScore = right.locked
+      ? 1
+      : right.reopened
+        ? 5
+        : right.formStatus === 'Brouillon'
+          ? 4
+          : right.formStatus === 'Non ouverte'
+            ? 3
+            : right.formStatus === 'Soumise'
+              ? 2
+              : 0
 
     if (rightScore !== leftScore) return rightScore - leftScore
     return parseTrackingDate(right.sentAt) - parseTrackingDate(left.sentAt)
@@ -154,17 +166,32 @@ function buildTimelineData(rows) {
   }))
 }
 
-function buildTrainingBarData(rows, forms) {
+function buildEmployeesByCampaignData(rows, forms) {
   const grouped = rows.reduce((accumulator, row) => {
-    const label = getTrainingLabel(forms[row.id])
-    accumulator[label] = (accumulator[label] || 0) + 1
+    const campaignYear = String(row.sentAt || '').split('/')[2] || 'Sans campagne'
+    const formState = forms[row.id]
+    const employeeIds = new Set()
+
+    if (Array.isArray(formState?.trainingRequests) && formState.trainingRequests.length > 0) {
+      formState.trainingRequests.forEach((request) => {
+        ;(request.employeeIds || []).forEach((employeeId) => {
+          employeeIds.add(String(employeeId))
+        })
+      })
+    } else if (formState?.employeMatricule) {
+      employeeIds.add(String(formState.employeMatricule))
+    }
+
+    accumulator[campaignYear] = (accumulator[campaignYear] || 0) + employeeIds.size
     return accumulator
   }, {})
 
   return Object.entries(grouped)
-    .map(([label, value]) => ({ label, value }))
-    .sort((left, right) => right.value - left.value)
-    .slice(0, 5)
+    .map(([label, value]) => ({
+      label: `Campagne ${label}`,
+      value,
+    }))
+    .sort((left, right) => String(left.label).localeCompare(String(right.label)))
 }
 
 function getFormRequestsList(forms) {
@@ -232,7 +259,7 @@ function buildPendingStructuresRows(rows) {
     .map((row) => ({
       title: row.structure,
       subtitle: row.manager,
-      meta: `Envoyée le ${row.sentAt}`,
+      meta: `Envoyee le ${row.sentAt}`,
       status: row.formStatus,
       color: '#f59e0b',
     }))
@@ -250,7 +277,7 @@ function buildTopRequestedTrainings(forms) {
       title,
       subtitle: 'Demandes de formation',
       meta: `${total} demande(s)`,
-      status: 'Demandée',
+      status: 'Demandee',
       color: '#2563eb',
     }))
     .sort((left, right) => Number(right.meta.split(' ')[0]) - Number(left.meta.split(' ')[0]))
@@ -358,7 +385,9 @@ function buildEmployerReviewTable(currentRow, currentForm, notifications) {
         formation,
         status,
         color,
-        priority: request.echeance ? `Echeance ${formatDeadline(request.echeance)}` : 'Priorite standard',
+        priority: request.echeance
+          ? `Echeance ${formatDeadline(request.echeance)}`
+          : 'Priorite standard',
         employeesCount,
         comment,
       }
@@ -379,15 +408,15 @@ export function buildDdrhDashboardModel() {
     role: 'DDRH',
     stats: [
       {
-        title: 'Fiches envoyées',
+        title: 'Fiches envoyees',
         value: String(rows.length),
-        subtitle: 'Nombre total de fiches diffusées',
+        subtitle: 'Nombre total de fiches diffusees',
         background: 'linear-gradient(135deg, #ef4444 0%, #fb7185 100%)',
         Icon: DescriptionRoundedIcon,
         borderColor: defaultAccent,
       },
       {
-        title: 'Fiches à valider',
+        title: 'Fiches a valider',
         value: String(submittedRows.length),
         subtitle: 'Fiches soumises en attente de validation',
         background: 'linear-gradient(135deg, #f97316 0%, #fb923c 100%)',
@@ -395,9 +424,9 @@ export function buildDdrhDashboardModel() {
         borderColor: defaultAccent,
       },
       {
-        title: 'Formations demandées',
+        title: 'Formations demandees',
         value: String(totalTrainings),
-        subtitle: 'Nombre total de besoins exprimés',
+        subtitle: 'Nombre total de besoins exprimes',
         background: 'linear-gradient(135deg, #0f9d58 0%, #34d399 100%)',
         Icon: AssessmentRoundedIcon,
         borderColor: defaultAccent,
@@ -412,40 +441,40 @@ export function buildDdrhDashboardModel() {
       },
     ],
     charts: {
-      lineTitle: 'Nombre de formations par année',
-      lineSubtitle: 'Répartition annuelle des demandes de formation',
+      lineTitle: 'Nombre de formations par annee',
+      lineSubtitle: 'Repartition annuelle des demandes de formation',
       lineData: buildTrainingYearsData(forms),
       lineDataKey: 'value',
       lineXAxisKey: 'label',
-      pieTitle: 'État des fiches',
-      pieSubtitle: 'Vue d’ensemble du cycle de traitement',
+      pieTitle: 'Etat des fiches',
+      pieSubtitle: 'Vue d ensemble du cycle de traitement',
       pieData: buildPieDataFromFormStatus(rows),
-      barTitle: 'Besoins par département',
-      barSubtitle: 'Départements les plus demandeurs en formation',
+      barTitle: 'Besoins par departement',
+      barSubtitle: 'Departements les plus demandeurs en formation',
       barData: buildDepartmentNeedsData(rows, forms),
       barDataKey: 'value',
       barXAxisKey: 'label',
     },
     tables: {
       latestSubmitted: {
-        title: 'Dernières fiches soumises',
-        subtitle: 'Les structures qui ont répondu le plus récemment',
+        title: 'Dernieres fiches soumises',
+        subtitle: 'Les structures qui ont repondu le plus recemment',
         items: buildLatestSubmittedRows(rows, forms),
       },
       pendingStructures: {
-        title: 'Structures qui n’ont pas encore répondu',
+        title: 'Structures qui n ont pas encore repondu',
         subtitle: 'Structures encore en attente de soumission',
         items: buildPendingStructuresRows(rows),
       },
       topTrainings: {
-        title: 'Formations les plus demandées',
-        subtitle: 'Les besoins les plus fréquents de la campagne',
+        title: 'Formations les plus demandees',
+        subtitle: 'Les besoins les plus frequents de la campagne',
         items: buildTopRequestedTrainings(forms),
       },
     },
     quick: {
       title: 'Actions rapides',
-      subtitle: 'Accès direct aux opérations DDRH',
+      subtitle: 'Acces direct aux operations DDRH',
       items: [
         {
           title: 'Valider les fiches',
@@ -455,7 +484,7 @@ export function buildDdrhDashboardModel() {
         },
         {
           title: 'Aller vers analyse',
-          subtitle: 'Accéder à la consolidation et à l’analyse des besoins',
+          subtitle: 'Acceder a la consolidation et a l analyse des besoins',
           background: quickActionPalette.success,
           Icon: AssessmentRoundedIcon,
         },
@@ -465,9 +494,7 @@ export function buildDdrhDashboardModel() {
 }
 
 export function buildEmployerDashboardModel(connectedEmail) {
-  const rows = getRowsWithRecipientMeta().filter(
-    (row) => row.recipientEmail === connectedEmail
-  )
+  const rows = getRowsWithRecipientMeta().filter((row) => row.recipientEmail === connectedEmail)
   const notifications = getStoredNotifications().filter(
     (item) => item.recipientEmail === connectedEmail
   )
@@ -504,9 +531,17 @@ export function buildEmployerDashboardModel(connectedEmail) {
       {
         title: 'Formations demandees',
         value: String(currentTrainingCount),
-        subtitle: `${requestedEmployeesCount} employe(s) concerné(s)`,
+        subtitle: `${requestedEmployeesCount} employe(s) concernes`,
         background: 'linear-gradient(135deg, #0f9d58 0%, #34d399 100%)',
         Icon: AssignmentTurnedInRoundedIcon,
+        borderColor: defaultAccent,
+      },
+      {
+        title: 'Besoins en formation',
+        value: String(requestedEmployeesCount),
+        subtitle: 'Nombre total d\'employes a former',
+        background: 'linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)',
+        Icon: PeopleAltRoundedIcon,
         borderColor: defaultAccent,
       },
     ],
@@ -519,9 +554,9 @@ export function buildEmployerDashboardModel(connectedEmail) {
       pieTitle: 'Etat de mes demandes',
       pieSubtitle: 'Brouillons, soumissions et fiches a ouvrir',
       pieData: buildPieDataFromFormStatus(rows),
-      barTitle: 'Mes formations les plus demandees',
-      barSubtitle: 'Besoins deja saisis dans mes fiches',
-      barData: buildTrainingBarData(rows, forms),
+      barTitle: 'Employes formes par campagne',
+      barSubtitle: 'Nombre d employes concernes par les formations de chaque campagne',
+      barData: buildEmployeesByCampaignData(rows, forms),
       barDataKey: 'value',
       barXAxisKey: 'label',
     },
@@ -555,17 +590,17 @@ export function buildEmployerDashboardModel(connectedEmail) {
     focusBlock: {
       title: 'Bloc principal',
       subtitle: 'Une fiche contient une ou plusieurs formations et plusieurs employes par formation',
-      trackingId: currentRow.id || '',
-      ficheLabel: currentRow.templateName || 'Aucune fiche active',
+      trackingId: currentRow?.id || '',
+      ficheLabel: currentRow?.templateName || 'Aucune fiche active',
       statusLabel: currentStatusLabel,
       deadlineLabel: currentForm?.echeance ? formatDeadline(currentForm.echeance) : 'Non definie',
       trainingCount: currentTrainingCount,
       buttonLabel:
-        currentRow.formStatus === 'Soumise' && !currentRow.reopened
+        currentRow?.formStatus === 'Soumise' && !currentRow?.reopened
           ? 'Voir ma fiche'
           : 'Continuer le brouillon',
       messages: [
-        ...(currentRow.reopened
+        ...(currentRow?.reopened
           ? [
               {
                 text: 'Votre fiche a ete reouverte par la DDRH pour correction.',
@@ -575,10 +610,10 @@ export function buildEmployerDashboardModel(connectedEmail) {
               },
             ]
           : []),
-        ...(currentRow.locked
+        ...(currentRow?.locked
           ? [
               {
-                text: 'Votre fiche est verrouillee par la DDRH. Elle n’est plus modifiable.',
+                text: 'Votre fiche est verrouillee par la DDRH. Elle n est plus modifiable.',
                 background: '#fff4df',
                 border: '#f5dfb4',
                 color: '#b96d12',
@@ -590,7 +625,11 @@ export function buildEmployerDashboardModel(connectedEmail) {
     reviewTable: {
       title: 'Retour DDRH',
       subtitle: 'Notifications et commentaires DDRH sur votre fiche',
-      ...buildEmployerReviewTable(currentRow, currentForm, notifications),
+      ...buildEmployerReviewTable(
+        currentRow || { formStatus: 'Non ouverte', locked: false, reopened: false, ddrhComment: '' },
+        currentForm || {},
+        notifications
+      ),
     },
     quick: {
       title: 'Actions rapides',
@@ -639,8 +678,7 @@ export const tooltipStyle = {
 export const dashboardSurfaceSx = {
   p: { xs: 2, md: 2.3 },
   borderRadius: '18px',
-  background:
-    'linear-gradient(180deg, rgba(255,255,255,0.99) 0%, rgba(248,250,255,0.98) 100%)',
+  background: 'linear-gradient(180deg, rgba(255,255,255,0.99) 0%, rgba(248,250,255,0.98) 100%)',
   border: '1px solid #e5ebf3',
   boxShadow: '0 10px 24px rgba(20, 31, 56, 0.08)',
 }

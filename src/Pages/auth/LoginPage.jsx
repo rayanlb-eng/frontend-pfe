@@ -12,21 +12,16 @@ import {
   TextField,
   Typography,
 } from '@mui/material'
+import { loginUser } from '../../services/auth'
 import { useEffect, useMemo, useState } from 'react'
 import { Link as RouterLink, useNavigate } from 'react-router-dom'
 import BrandHeader from '../../components/auth/Brandheader'
 import PasswordField from '../../components/auth/PasswordField'
-import {
-  CONNECTED_USER_EMAIL_KEY,
-  CONNECTED_USER_ROLE_KEY,
-  getStoredUsers,
-  TRUSTED_2FA_DEVICES_KEY,
-  } from '../Users/users.data'
 import { inputSx } from '../../theme/authstyles'
 
 const MAX_ATTEMPTS = 3
-const BLOCK_DURATION_MS = 5 * 60 * 1000
-const DEMO_PASSWORD = 'Mobilis123'
+const BLOCK_DURATION_MS = 1 
+
 
 function formatRemainingTime(ms) {
   const totalSeconds = Math.max(0, Math.ceil(ms / 1000))
@@ -112,7 +107,7 @@ function LoginPage({ onLogin }) {
     )
   }
 
-  // Valide les identifiants de demo, determine le profil et decide si la 2FA est requise.
+  // Appelle l'API de login, stocke les tokens JWT et garde le blocage local en cas d'erreur.
   const handleSubmit = async (event) => {
     event.preventDefault()
     if (isDisabled) return
@@ -120,74 +115,33 @@ function LoginPage({ onLogin }) {
     setLoading(true)
     setError('')
 
-    const normalizedIdentifier = identifier.trim().toLowerCase()
-    const storedUsers = getStoredUsers()
-    const demoAccounts = [
-      {
-        identifier: 'admin',
-        email: 'admin@mobilis.dz',
-        role: 'DDRH',
-        twoFactorRequired: false,
-      },
-      ...storedUsers.map((user) => ({
-        identifier: user.email.split('@')[0],
-        email: user.email,
-        role: user.accessRole,
-        twoFactorRequired: Boolean(user.twoFactorRequired),
-      })),
-    ]
+    try {
+      const data = await loginUser({
+        username: identifier.trim(),
+        password,
+      })
 
-    const matchedAccount = demoAccounts.find(
-      (account) =>
-        account.email.toLowerCase() === normalizedIdentifier ||
-        account.identifier.toLowerCase() === normalizedIdentifier
-    )
-    const isValidCredentials = Boolean(matchedAccount) && password === DEMO_PASSWORD
-
-    await new Promise((resolve) => window.setTimeout(resolve, 900))
-
-    if (!isValidCredentials) {
-      setLoading(false)
-      handleFailedLogin()
-      return
-    }
-
-    setFailedAttempts(0)
-    localStorage.removeItem('loginFailedAttempts')
-    localStorage.removeItem('loginBlockedUntil')
-
-    localStorage.setItem(CONNECTED_USER_EMAIL_KEY, matchedAccount.email)
-    localStorage.setItem(CONNECTED_USER_ROLE_KEY, matchedAccount.role)
-
-    onLogin?.({
-      identifier,
-      password,
-      rememberMe,
-    })
-
-    const trustedDevices = JSON.parse(localStorage.getItem(TRUSTED_2FA_DEVICES_KEY) || '{}')
-    const isTrustedDevice = Boolean(trustedDevices[matchedAccount.email])
-    const mustUseTwoFactor = matchedAccount.twoFactorRequired || !isTrustedDevice
-
-    if (!mustUseTwoFactor) {
-      localStorage.setItem('isAuthenticated', 'true')
       setFailedAttempts(0)
+      setBlockedUntil(0)
+      localStorage.removeItem('loginFailedAttempts')
+      localStorage.removeItem('loginBlockedUntil')
+
+      localStorage.setItem('accessToken', data.access)
+      localStorage.setItem('refreshToken', data.refresh)
+      localStorage.setItem('isAuthenticated', 'true')
+
+      onLogin?.({
+        username: identifier.trim(),
+        rememberMe,
+      })
+
       setLoading(false)
       navigate('/dashboard')
-      return
+    } catch (err) {
+      setLoading(false)
+      handleFailedLogin()
+      setError(err.message || 'Echec de connexion')
     }
-
-    sessionStorage.setItem(
-      'pending2FA',
-      JSON.stringify({
-        email: matchedAccount.email,
-        rememberMe,
-        twoFactorRequired: matchedAccount.twoFactorRequired,
-      })
-    )
-
-    setLoading(false)
-    navigate('/login/2fa')
   }
 
   return (
@@ -252,9 +206,9 @@ function LoginPage({ onLogin }) {
           ) : null}
 
           <TextField
-            label="Nom d'utilisateur ou e-mail"
+            label="Nom d'utilisateur"
             type="text"
-            placeholder="admin ou nom.prenom@mobilis.dz"
+            placeholder="Saisir votre nom d'utilisateur"
             autoComplete="username"
             fullWidth
             variant="outlined"

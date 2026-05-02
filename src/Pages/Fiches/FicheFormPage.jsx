@@ -112,7 +112,7 @@ function getStatusLabel(row) {
   return 'Disponible'
 }
 
-function getStatusChipSx(status) {
+function StatusChipSx(status) {
   const palette = {
     Brouillon: { bg: '#eaf2ff', color: '#2563eb' },
     Soumise: { bg: '#e8f7ee', color: '#168553' },
@@ -141,7 +141,7 @@ export default function FicheFormPage() {
   const [formStates, setFormStates] = useState(() => getStoredFormStates())
   const row = trackingRows.find((item) => item.id === trackingId)
 
-  const template = useMemo(
+  const _template = useMemo(
     () => ficheTemplates.find((item) => item.id === row?.templateId) || ficheTemplates[0],
     [row]
   )
@@ -165,7 +165,7 @@ export default function FicheFormPage() {
   const isSubmitted = row.formStatus === 'Soumise' && !row.reopened
   const isLocked = Boolean(row.locked)
   const canEditForm = !isDdrh && !isSubmitted && !isLocked
-  const statusLabel = getStatusLabel(row)
+  const _statusLabel = getStatusLabel(row)
 
   const persistRows = (nextRows) => {
     setTrackingRows(nextRows)
@@ -449,6 +449,18 @@ export default function FicheFormPage() {
                 const selectedEmployees = employeesDirectory.filter((employee) =>
                   request.employeeIds.includes(String(employee.idEmploye))
                 )
+                const employeeIdsUsedElsewhere = new Set(
+                  form.trainingRequests
+                    .filter((_, index) => index !== requestIndex)
+                    .flatMap((item) => item.employeeIds.map((id) => String(id)))
+                )
+                const availableEmployees = employeesDirectory.filter((employee) => {
+                  const employeeId = String(employee.idEmploye)
+                  return (
+                    request.employeeIds.includes(employeeId) ||
+                    !employeeIdsUsedElsewhere.has(employeeId)
+                  )
+                })
 
                 return (
                   <Paper
@@ -497,7 +509,7 @@ export default function FicheFormPage() {
                       <FormSection title="Employés concernés">
                         <Autocomplete
                           multiple
-                          options={employeesDirectory}
+                          options={availableEmployees}
                           value={selectedEmployees}
                           onChange={(_, value) =>
                             handleRequestChange(
@@ -519,7 +531,7 @@ export default function FicheFormPage() {
                             <TextField
                               {...params}
                               label="Sélectionner un ou plusieurs employés *"
-                              helperText="Vous pouvez associer plusieurs employés à la même formation."
+                              helperText="Un employe deja choisi dans une autre formation n est plus disponible ici."
                             />
                           )}
                         />

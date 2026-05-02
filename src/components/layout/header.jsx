@@ -26,6 +26,7 @@ import {
   CONNECTED_USER_ROLE_KEY,
 } from '../../Pages/Users/users.data'
 import {
+  syncDeadlineReminderNotifications,
   getStoredNotifications,
   saveNotifications,
 } from '../../Pages/Fiches/data/storage'
@@ -93,6 +94,7 @@ export default function Header() {
     () => {
       void location.pathname
       void notificationsVersion
+      syncDeadlineReminderNotifications()
       return getStoredNotifications()
     },
     [location.pathname, notificationsVersion]

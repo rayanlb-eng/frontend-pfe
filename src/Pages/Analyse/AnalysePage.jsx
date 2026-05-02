@@ -21,7 +21,7 @@ import {
 import { createElement, useMemo, useState } from 'react'
 import MainLayout from '../../components/layout/mainLayout'
 import StatCard from '../../components/ui/statcard'
-import { employeesDirectory } from '../Fiches/data/data'
+import { employeesDirectory, structureRecipients } from '../Fiches/data/data'
 import {
   FICHE_FORMS_STORAGE_KEY,
   FICHE_NOTIFICATIONS_STORAGE_KEY,
@@ -153,6 +153,46 @@ export default function AnalysePage() {
     saveNotifications([...nextNotifications, ...storedNotifications])
   }
 
+  const propagateDecisionNotification = (row, decision) => {
+    const storedNotifications = getStoredNotifications()
+    const timestamp = Date.now()
+    const recipientsById = new Map(
+      structureRecipients.map((recipient) => [recipient.id, recipient])
+    )
+
+    const notificationMeta = {
+      'Acceptée': {
+        title: 'Formation acceptee par la DDRH',
+        message: `Votre demande pour la formation "${row.formation}" a ete acceptee par la DDRH.`,
+      },
+      'Refusée': {
+        title: 'Formation refusee par la DDRH',
+        message: `Votre demande pour la formation "${row.formation}" a ete refusee par la DDRH.`,
+      },
+      Reportee: {
+        title: 'Formation reportee par la DDRH',
+        message: `Votre demande pour la formation "${row.formation}" a ete reportee a une prochaine campagne.`,
+      },
+    }
+
+    const nextNotifications = row.structures.map((structure, index) => ({
+      id: `notif-analyse-decision-${row.key}-${structure.recipientId}-${decision}-${timestamp}-${index}`,
+      type: 'analyse-decision',
+      recipientId: structure.recipientId,
+      recipientEmail: recipientsById.get(structure.recipientId)?.email || '',
+      title: notificationMeta[decision]?.title || 'Decision DDRH sur une formation',
+      message:
+        notificationMeta[decision]?.message ||
+        `La DDRH a pris une decision sur la formation "${row.formation}".`,
+      trackingId: structure.trackingId,
+      formationKey: row.key,
+      read: false,
+      createdAt: new Date().toLocaleDateString('fr-FR'),
+    }))
+
+    saveNotifications([...nextNotifications, ...storedNotifications])
+  }
+
   const handleOpenDecisionDialog = (decision) => {
     if (!detailsRow) return
 
@@ -187,8 +227,10 @@ export default function AnalysePage() {
       propagateNonJustifiedDecision(decisionRow, trimmedComment)
     } else if (decisionDialog.decision === 'Acceptée') {
       updateAnalyseRow(decisionRow.key, { decision: 'Acceptée' })
+      propagateDecisionNotification(decisionRow, 'Acceptée')
     } else if (decisionDialog.decision === 'Refusée') {
       updateAnalyseRow(decisionRow.key, { decision: 'Refusée' })
+      propagateDecisionNotification(decisionRow, 'Refusée')
     }
 
     handleCloseDecisionDialog()

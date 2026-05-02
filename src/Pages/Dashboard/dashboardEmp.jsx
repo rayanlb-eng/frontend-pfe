@@ -1,5 +1,15 @@
 import { Box, Button, Chip, Paper, Stack, Typography } from '@mui/material'
 import { createElement } from 'react'
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts'
 import { useNavigate } from 'react-router-dom'
 import MainLayout from '../../components/layout/mainLayout'
 import ChartCard from '../../components/ui/chartCard'
@@ -7,11 +17,9 @@ import StatCard from '../../components/ui/statcard'
 import {
   dashboardSecondaryGridSx,
   dashboardSurfaceSx,
-  floatingIconSx,
-  quickActionCardSx,
-  quickActionsGridSx,
   recentItemSx,
   recentListSx,
+  tooltipStyle,
 } from './dashboard.data'
 
 function DashboardStatsGrid({ stats }) {
@@ -185,41 +193,34 @@ function EmployerReviewTable({ reviewBlock }) {
   )
 }
 
-function DashboardQuickActions({ quickBlock }) {
+function EmployerTrainingChart({ charts }) {
+  if (!charts?.barData?.length) return null
+
   return (
-    <ChartCard title={quickBlock.title} subtitle={quickBlock.subtitle}>
-      <Box sx={quickActionsGridSx}>
-        {quickBlock.items.map(({ title, subtitle, background, Icon }) => (
-          <Paper key={title} elevation={0} sx={quickActionCardSx(background)}>
-            <Box sx={floatingIconSx}>
-              {createElement(Icon)}
-            </Box>
-
-            <Typography
-              sx={{
-                color: 'rgba(255,255,255,0.92)',
-                fontWeight: 700,
-                fontSize: '1rem',
-                maxWidth: '80%',
-              }}
-            >
-              {title}
-            </Typography>
-
-            <Typography
-              sx={{
-                mt: 0.9,
-                color: 'rgba(255,255,255,0.95)',
-                fontSize: '0.88rem',
-                fontWeight: 700,
-                maxWidth: '86%',
-              }}
-            >
-              {subtitle}
-            </Typography>
-          </Paper>
-        ))}
-      </Box>
+    <ChartCard title={charts.barTitle} subtitle={charts.barSubtitle}>
+      <ResponsiveContainer width="100%" height={320}>
+        <BarChart data={charts.barData}>
+          <CartesianGrid stroke="#e7edf5" vertical={false} />
+          <XAxis
+            dataKey={charts.barXAxisKey}
+            stroke="#6f7d95"
+            interval={0}
+            angle={charts.barData.length > 3 ? -12 : 0}
+            textAnchor={charts.barData.length > 3 ? 'end' : 'middle'}
+            height={charts.barData.length > 3 ? 56 : 30}
+          />
+          <YAxis stroke="#6f7d95" allowDecimals={false} />
+          <Tooltip {...tooltipStyle} />
+          <Bar dataKey={charts.barDataKey} radius={[9, 9, 0, 0]}>
+            {charts.barData.map((entry, index) => (
+              <Cell
+                key={`${entry.label}-${index}`}
+                fill={['#2563eb', '#1e9b6d', '#f97316', '#7c3aed', '#db5c74'][index % 5]}
+              />
+            ))}
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
     </ChartCard>
   )
 }
@@ -244,8 +245,8 @@ export default function DashboardEmp({ dashboardModel }) {
             />
 
             <Box sx={dashboardSecondaryGridSx}>
+              <EmployerTrainingChart charts={dashboardModel.charts} />
               <EmployerReviewTable reviewBlock={dashboardModel.reviewTable} />
-              <DashboardQuickActions quickBlock={dashboardModel.quick} />
             </Box>
           </Stack>
         </Paper>

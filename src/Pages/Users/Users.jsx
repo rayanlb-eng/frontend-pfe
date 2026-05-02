@@ -26,9 +26,12 @@ import {
   actionButtonsSx,
   CONNECTED_USER_ROLE_KEY,
   contentPaperSx,
-  controlSx,
-  filters,
+  getFullName,
+  getRoleColor,
   getStoredUsers,
+  getUserAvatar,
+  getUserStatusLabel,
+  mapRoleFlags,
   primaryButtonSx,
   saveUsers,
   searchBoxSx,
@@ -48,15 +51,25 @@ import {
   userSecondaryActionSx,
   userStatusChipSx,
   usersGridSx,
-  filtersRowSx,
 } from './users.data'
+
+function createEmptyUserForm() {
+  return {
+    username: '',
+    email: '',
+    first_name: '',
+    last_name: '',
+    telephone: '',
+    departement: '',
+    role: 'Directeur de structure',
+    is_active: true,
+    password: '',
+  }
+}
 
 export default function Users() {
   const [users, setUsers] = useState(getStoredUsers())
   const [searchTerm, setSearchTerm] = useState('')
-  const [selectedRole, setSelectedRole] = useState(filters.roles[0])
-  const [selectedStatus, setSelectedStatus] = useState(filters.status[0])
-  const [selectedDepartment, setSelectedDepartment] = useState(filters.department[0])
   const [feedback, setFeedback] = useState('')
   const [selectedUser, setSelectedUser] = useState(null)
   const [formDialogOpen, setFormDialogOpen] = useState(false)
@@ -69,147 +82,107 @@ export default function Users() {
     saveUsers(users)
   }, [users])
 
-  const canManageRoles = connectedUserRole === 'DDRH'
+  const canManageUsers =
+    connectedUserRole === 'DDRH' || connectedUserRole === 'Admin'
 
-  // Filtre la liste selon la recherche et les criteres choisis dans la toolbar.
   const filteredUsers = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase()
 
     return users.filter((user) => {
-      const matchesSearch =
-        !normalizedSearch ||
-        user.name.toLowerCase().includes(normalizedSearch) ||
+      if (!normalizedSearch) return true
+
+      const fullName = getFullName(user).toLowerCase()
+
+      return (
+        fullName.includes(normalizedSearch) ||
+        user.username.toLowerCase().includes(normalizedSearch) ||
         user.email.toLowerCase().includes(normalizedSearch)
-
-      const matchesRole =
-        selectedRole === filters.roles[0] || user.accessRole === selectedRole
-
-      const matchesStatus =
-        selectedStatus === filters.status[0] || user.status === selectedStatus
-
-      const matchesDepartment =
-        selectedDepartment === filters.department[0] || user.department === selectedDepartment
-
-      return matchesSearch && matchesRole && matchesStatus && matchesDepartment
+      )
     })
-  }, [users, searchTerm, selectedRole, selectedStatus, selectedDepartment])
+  }, [users, searchTerm])
 
   const passiveFeedback = useMemo(() => {
-    if (!canManageRoles) {
-      return "Acces refuse : seul un profil DDRH peut gerer les roles et permissions."
+    if (!canManageUsers) {
+      return 'Acces refuse : seuls les profils Admin et DDRH peuvent gerer les utilisateurs.'
     }
 
-    if (
-      (searchTerm.trim() ||
-        selectedRole !== filters.roles[0] ||
-        selectedStatus !== filters.status[0] ||
-        selectedDepartment !== filters.department[0]) &&
-      filteredUsers.length === 0
-    ) {
-      return 'Utilisateur introuvable ou aucun resultat pour les filtres selectionnes.'
+    if (searchTerm.trim() && filteredUsers.length === 0) {
+      return 'Utilisateur introuvable pour cette recherche.'
     }
 
     return ''
-  }, [
-    canManageRoles,
-    filteredUsers.length,
-    searchTerm,
-    selectedDepartment,
-    selectedRole,
-    selectedStatus,
-  ])
+  }, [canManageUsers, filteredUsers.length, searchTerm])
 
   const handleOpenAddUser = () => {
-    if (!canManageRoles) return
+    if (!canManageUsers) return
     setSelectedUser(null)
     setFormDialogOpen(true)
   }
 
   const handleOpenEditUser = (user) => {
-    if (!canManageRoles) return
+    if (!canManageUsers) return
     setSelectedUser(user)
     setFormDialogOpen(true)
   }
 
-  // Ouvre la modale de creation ou d'edition selon l'utilisateur selectionne.
   const handleSaveUser = (nextUser) => {
     setUsers((currentUsers) => {
       const exists = selectedUser
-        ? currentUsers.some((user) => user.email === selectedUser.email)
-        : currentUsers.some((user) => user.email === nextUser.email)
+        ? currentUsers.some((user) => user.username === selectedUser.username)
+        : currentUsers.some(
+            (user) =>
+              user.username === nextUser.username || user.email === nextUser.email
+          )
 
       if (!exists) {
         return [...currentUsers, nextUser]
       }
 
       return currentUsers.map((user) =>
-        user.email === selectedUser.email ? { ...nextUser } : user
+        user.username === selectedUser.username ? { ...nextUser } : user
       )
     })
 
     setFeedback(
       selectedUser
-        ? `Les informations de ${nextUser.name} ont ete mises a jour.`
-        : `Le nouvel utilisateur ${nextUser.name} a ete ajoute.`
+        ? `Les informations de ${getFullName(nextUser)} ont ete mises a jour.`
+        : `Le nouvel utilisateur ${getFullName(nextUser)} a ete ajoute.`
     )
     setFormDialogOpen(false)
     setSelectedUser(null)
   }
 
   const handleOpenDeleteUser = (user) => {
-    if (!canManageRoles) return
+    if (!canManageUsers) return
     setSelectedUser(user)
     setDeleteDialogOpen(true)
   }
 
   const handleDeleteUser = () => {
     if (!selectedUser) return
-    setUsers((currentUsers) => currentUsers.filter((user) => user.email !== selectedUser.email))
-    setFeedback(`${selectedUser.name} a ete supprime de la liste des utilisateurs.`)
+
+    setUsers((currentUsers) =>
+      currentUsers.filter((user) => user.username !== selectedUser.username)
+    )
+    setFeedback(`${getFullName(selectedUser)} a ete supprime de la liste des utilisateurs.`)
     setDeleteDialogOpen(false)
     setSelectedUser(null)
   }
 
-  // Revoque uniquement l'acces global du compte.
-  const handleRevokeAccess = (userToUpdate) => {
-    if (!canManageRoles) return
+  const handleDeactivateUser = (userToUpdate) => {
+    if (!canManageUsers) return
 
     setUsers((currentUsers) =>
       currentUsers.map((user) =>
-        user.email === userToUpdate.email
+        user.username === userToUpdate.username
           ? {
               ...user,
-              status: 'Acces revoque',
-              badgeColor: '#db5c74',
+              is_active: false,
             }
           : user
       )
     )
-    setFeedback(`L'acces de ${userToUpdate.name} a ete revoque.`)
-  }
-
-  // Permet a la DDRH de rendre le 2FA obligatoire pour un profil sensible.
-  const handleToggleMandatory2FA = (userToUpdate) => {
-    if (!canManageRoles) return
-
-    const nextRequiredState = !userToUpdate.twoFactorRequired
-
-    setUsers((currentUsers) =>
-      currentUsers.map((user) =>
-        user.email === userToUpdate.email
-          ? {
-              ...user,
-              twoFactorRequired: nextRequiredState,
-            }
-          : user
-      )
-    )
-
-    setFeedback(
-      nextRequiredState
-        ? `Le 2FA est maintenant obligatoire pour ${userToUpdate.name}.`
-        : `Le caractere obligatoire du 2FA a ete retire pour ${userToUpdate.name}.`
-    )
+    setFeedback(`Le compte de ${getFullName(userToUpdate)} a ete desactive.`)
   }
 
   return (
@@ -220,24 +193,17 @@ export default function Users() {
         <Paper elevation={0} sx={contentPaperSx}>
           <Stack spacing={2}>
             <UsersToolbar
-              filters={filters}
               searchTerm={searchTerm}
-              selectedRole={selectedRole}
-              selectedStatus={selectedStatus}
-              selectedDepartment={selectedDepartment}
               onSearchChange={setSearchTerm}
-              onRoleChange={setSelectedRole}
-              onStatusChange={setSelectedStatus}
-              onDepartmentChange={setSelectedDepartment}
-              canManageRoles={canManageRoles}
+              canManageUsers={canManageUsers}
               onAddUser={handleOpenAddUser}
             />
 
-            <Alert severity={canManageRoles ? 'info' : 'error'} sx={{ borderRadius: '14px' }}>
+            <Alert severity={canManageUsers ? 'info' : 'error'} sx={{ borderRadius: '14px' }}>
               Profil connecte : <strong>{connectedUserRole}</strong>.{' '}
-              {canManageRoles
-                ? 'Vous pouvez modifier les roles et revoquer les acces.'
-                : "Le systeme refuse l'acces a la gestion des roles pour un employeur."}
+              {canManageUsers
+                ? 'Le formulaire est aligne sur les attributs backend utilisateur.'
+                : "Le systeme refuse l'acces a la gestion des utilisateurs pour un directeur de structure."}
             </Alert>
 
             {feedback || passiveFeedback ? (
@@ -269,19 +235,19 @@ export default function Users() {
                   Aucun utilisateur trouve.
                 </Typography>
                 <Typography sx={{ mt: 0.5, fontSize: '0.9rem', color: '#72809a' }}>
-                  Essayez un autre nom, un autre role ou un autre filtre.
+                  Essayez un autre nom, un autre nom d&apos;utilisateur ou une autre adresse
+                  e-mail.
                 </Typography>
               </Paper>
             ) : (
               <Box sx={usersGridSx}>
                 {filteredUsers.map((user) => (
                   <UserCard
-                    key={user.email}
+                    key={user.username}
                     user={user}
-                    canManageRoles={canManageRoles}
+                    canManageUsers={canManageUsers}
                     onEditUser={handleOpenEditUser}
-                    onRevokeAccess={handleRevokeAccess}
-                    onToggleMandatory2FA={handleToggleMandatory2FA}
+                    onDeactivateUser={handleDeactivateUser}
                     onDeleteUser={handleOpenDeleteUser}
                   />
                 ))}
@@ -289,7 +255,7 @@ export default function Users() {
             )}
 
             <UserFormDialog
-              key={selectedUser?.email || 'new-user'}
+              key={selectedUser?.username || 'new-user'}
               open={formDialogOpen}
               initialUser={selectedUser}
               onClose={() => {
@@ -320,9 +286,7 @@ function UsersStatsGrid({ stats }) {
     <Box sx={statsGridSx}>
       {stats.map(({ title, value, subtitle, background, Icon }) => (
         <Paper key={title} elevation={0} sx={statCardSx(background)}>
-          <Box sx={statIconWrapSx}>
-            {createElement(Icon)}
-          </Box>
+          <Box sx={statIconWrapSx}>{createElement(Icon)}</Box>
 
           <Typography sx={statTitleSx}>{title}</Typography>
           <Typography sx={statValueSx}>{value}</Typography>
@@ -333,22 +297,10 @@ function UsersStatsGrid({ stats }) {
   )
 }
 
-function UsersToolbar({
-  filters,
-  searchTerm,
-  selectedRole,
-  selectedStatus,
-  selectedDepartment,
-  onSearchChange,
-  onRoleChange,
-  onStatusChange,
-  onDepartmentChange,
-  canManageRoles,
-  onAddUser,
-}) {
+function UsersToolbar({ searchTerm, onSearchChange, canManageUsers, onAddUser }) {
   return (
     <Stack sx={toolbarWrapSx}>
-      <Stack sx={toolbarTopRowSx}>
+      <Box sx={toolbarTopRowSx}>
         <Box sx={searchBoxSx}>
           <SearchRoundedIcon sx={{ color: '#8a97ad', fontSize: 20 }} />
           <TextField
@@ -361,7 +313,7 @@ function UsersToolbar({
           />
         </Box>
 
-        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.2} sx={actionButtonsSx}>
+        <Stack direction="row" spacing={1.2} sx={actionButtonsSx}>
           <Button variant="outlined" size="small" sx={secondaryButtonSx}>
             Exporter la liste
           </Button>
@@ -372,101 +324,44 @@ function UsersToolbar({
             startIcon={<PersonAddAlt1RoundedIcon />}
             sx={primaryButtonSx}
             onClick={onAddUser}
-            disabled={!canManageRoles}
+            disabled={!canManageUsers}
           >
             Nouvel utilisateur
           </Button>
         </Stack>
-      </Stack>
-
-      <Stack sx={filtersRowSx}>
-        <TextField
-          select
-          fullWidth
-          value={selectedRole}
-          onChange={(event) => onRoleChange(event.target.value)}
-          size="small"
-          sx={controlSx}
-        >
-          {filters.roles.map((item) => (
-            <MenuItem key={item} value={item}>
-              {item}
-            </MenuItem>
-          ))}
-        </TextField>
-
-        <TextField
-          select
-          fullWidth
-          value={selectedStatus}
-          onChange={(event) => onStatusChange(event.target.value)}
-          size="small"
-          sx={controlSx}
-        >
-          {filters.status.map((item) => (
-            <MenuItem key={item} value={item}>
-              {item}
-            </MenuItem>
-          ))}
-        </TextField>
-
-        <TextField
-          select
-          fullWidth
-          value={selectedDepartment}
-          onChange={(event) => onDepartmentChange(event.target.value)}
-          size="small"
-          sx={controlSx}
-        >
-          {filters.department.map((item) => (
-            <MenuItem key={item} value={item}>
-              {item}
-            </MenuItem>
-          ))}
-        </TextField>
-      </Stack>
+      </Box>
     </Stack>
   )
 }
 
-function UserCard({
-  user,
-  canManageRoles,
-  onEditUser,
-  onRevokeAccess,
-  onDeleteUser,
-  onToggleMandatory2FA,
-}) {
+function UserCard({ user, canManageUsers, onEditUser, onDeactivateUser, onDeleteUser }) {
+  const roleColor = getRoleColor(user.role)
+
   return (
     <Paper elevation={0} sx={userCardSx}>
       <Stack spacing={1.4}>
         <Stack direction="row" spacing={1.3} alignItems="center">
-          <Avatar sx={userAvatarSx(user.badgeColor)}>{user.avatar}</Avatar>
+          <Avatar sx={userAvatarSx(roleColor)}>{getUserAvatar(user)}</Avatar>
 
           <Box sx={{ flex: 1, minWidth: 0 }}>
             <Typography sx={{ fontWeight: 800, color: '#1b2740', fontSize: '1rem' }}>
-              {user.name}
+              {getFullName(user)}
             </Typography>
             <Typography sx={{ mt: 0.2, fontSize: '0.86rem', color: '#6f7d95' }}>
-              {user.title}
-            </Typography>
-            <Typography sx={{ mt: 0.25, fontSize: '0.82rem', color: '#7c8797', fontWeight: 700 }}>
-              Role: {user.accessRole} - {user.department}
+              @{user.username}
             </Typography>
             <Typography
-              sx={{
-                mt: 0.2,
-                fontSize: '0.8rem',
-                color: user.twoFactorRequired ? '#7c3aed' : '#1d8e63',
-                fontWeight: 700,
-              }}
+              sx={{ mt: 0.25, fontSize: '0.82rem', color: '#7c8797', fontWeight: 700 }}
             >
-              2FA: Activee par defaut
-              {user.twoFactorRequired ? ' - Obligatoire' : ''}
+              Role : {user.role} - {user.departement}
             </Typography>
           </Box>
 
-          <Chip label={user.status} size="small" sx={userStatusChipSx(user.badgeColor)} />
+          <Chip
+            label={getUserStatusLabel(user)}
+            size="small"
+            sx={userStatusChipSx(roleColor)}
+          />
         </Stack>
 
         <Stack spacing={0.8}>
@@ -477,8 +372,14 @@ function UserCard({
 
           <Stack direction="row" spacing={1} alignItems="center">
             <PhoneRoundedIcon sx={{ fontSize: 18, color: '#8a97ad' }} />
-            <Typography sx={{ fontSize: '0.9rem', color: '#445169' }}>{user.phone}</Typography>
+            <Typography sx={{ fontSize: '0.9rem', color: '#445169' }}>
+              {user.telephone}
+            </Typography>
           </Stack>
+
+          <Typography sx={{ fontSize: '0.82rem', color: '#7c8797' }}>
+            Derniere connexion : {user.last_login || 'Non disponible'}
+          </Typography>
         </Stack>
 
         <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap' }}>
@@ -486,8 +387,8 @@ function UserCard({
             variant="contained"
             size="small"
             onClick={() => onEditUser(user)}
-            disabled={!canManageRoles}
-            sx={userPrimaryActionSx(user.badgeColor)}
+            disabled={!canManageUsers}
+            sx={userPrimaryActionSx(roleColor)}
           >
             Modifier
           </Button>
@@ -495,28 +396,18 @@ function UserCard({
           <Button
             variant="outlined"
             size="small"
-            onClick={() => onRevokeAccess(user)}
-            disabled={!canManageRoles || user.status === 'Acces revoque'}
+            onClick={() => onDeactivateUser(user)}
+            disabled={!canManageUsers || !user.is_active}
             sx={userSecondaryActionSx}
           >
-            Revoquer l'acces
-          </Button>
-
-          <Button
-            variant="outlined"
-            size="small"
-            onClick={() => onToggleMandatory2FA(user)}
-            disabled={!canManageRoles}
-            sx={userSecondaryActionSx}
-          >
-            {user.twoFactorRequired ? "Retirer l'obligation 2FA" : 'Rendre 2FA obligatoire'}
+            Desactiver
           </Button>
 
           <Button
             variant="outlined"
             size="small"
             onClick={() => onDeleteUser(user)}
-            disabled={!canManageRoles}
+            disabled={!canManageUsers}
             sx={userSecondaryActionSx}
           >
             Supprimer
@@ -529,36 +420,50 @@ function UserCard({
 
 function UserFormDialog({ open, initialUser, onClose, onSave }) {
   const [form, setForm] = useState(() =>
-    initialUser || {
-      name: '',
-      title: '',
-      accessRole: 'Employeur',
-      department: 'Formation',
-      email: '',
-      phone: '',
-      status: 'Actif',
-      twoFactorRequired: false,
-      badgeColor: '#2563eb',
-      avatar: 'U',
-    }
+    initialUser
+      ? {
+          username: initialUser.username || '',
+          email: initialUser.email || '',
+          first_name: initialUser.first_name || '',
+          last_name: initialUser.last_name || '',
+          telephone: initialUser.telephone || '',
+          departement: initialUser.departement || '',
+          role: initialUser.role || 'Directeur de structure',
+          is_active:
+            typeof initialUser.is_active === 'boolean' ? initialUser.is_active : true,
+          password: '',
+        }
+      : createEmptyUserForm()
   )
 
   const handleChange = (field, value) => {
     setForm((currentForm) => ({ ...currentForm, [field]: value }))
   }
 
-  // Normalise le profil avant enregistrement ; le 2FA est considere actif par defaut.
   const handleSubmit = () => {
-    const trimmedName = form.name.trim()
-    const trimmedEmail = form.email.trim()
-    if (!trimmedName || !trimmedEmail) return
+    const username = form.username.trim()
+    const email = form.email.trim()
+    const firstName = form.first_name.trim()
+    const lastName = form.last_name.trim()
+
+    if (!username || !email || !firstName || !lastName) return
+
+    const roleFlags = mapRoleFlags(form.role)
 
     onSave({
-      ...form,
-      name: trimmedName,
-      email: trimmedEmail,
-      badgeColor: form.accessRole === 'DDRH' ? '#7c3aed' : '#2563eb',
-      avatar: trimmedName.charAt(0).toUpperCase(),
+      username,
+      email,
+      first_name: firstName,
+      last_name: lastName,
+      telephone: form.telephone.trim(),
+      departement: form.departement.trim(),
+      role: form.role,
+      is_active: form.is_active,
+      password: form.password,
+      is_staff: roleFlags.is_staff,
+      is_superuser: roleFlags.is_superuser,
+      last_login: initialUser?.last_login || '',
+      date_joined: initialUser?.date_joined || new Date().toISOString(),
     })
   }
 
@@ -576,38 +481,84 @@ function UserFormDialog({ open, initialUser, onClose, onSave }) {
             gap: 1.4,
           }}
         >
-          <TextField label="Nom complet" value={form.name} onChange={(event) => handleChange('name', event.target.value)} fullWidth />
-          <TextField label="Fonction" value={form.title} onChange={(event) => handleChange('title', event.target.value)} fullWidth />
-          <TextField label="E-mail" value={form.email} onChange={(event) => handleChange('email', event.target.value)} fullWidth />
-          <TextField label="Telephone" value={form.phone} onChange={(event) => handleChange('phone', event.target.value)} fullWidth />
-          <TextField select label="Role" value={form.accessRole} onChange={(event) => handleChange('accessRole', event.target.value)} fullWidth>
+          <TextField
+            label="Nom d'utilisateur"
+            value={form.username}
+            onChange={(event) => handleChange('username', event.target.value)}
+            fullWidth
+          />
+          <TextField
+            label="E-mail"
+            value={form.email}
+            onChange={(event) => handleChange('email', event.target.value)}
+            fullWidth
+          />
+          <TextField
+            label="Prenom"
+            value={form.first_name}
+            onChange={(event) => handleChange('first_name', event.target.value)}
+            fullWidth
+          />
+          <TextField
+            label="Nom"
+            value={form.last_name}
+            onChange={(event) => handleChange('last_name', event.target.value)}
+            fullWidth
+          />
+          <TextField
+            label="Telephone"
+            value={form.telephone}
+            onChange={(event) => handleChange('telephone', event.target.value)}
+            fullWidth
+          />
+          <TextField
+            label="Departement"
+            value={form.departement}
+            onChange={(event) => handleChange('departement', event.target.value)}
+            fullWidth
+          />
+          <TextField
+            select
+            label="Role"
+            value={form.role}
+            onChange={(event) => handleChange('role', event.target.value)}
+            fullWidth
+          >
+            <MenuItem value="Admin">Admin</MenuItem>
             <MenuItem value="DDRH">DDRH</MenuItem>
-            <MenuItem value="Employeur">Employeur</MenuItem>
-          </TextField>
-          <TextField label="Service" value={form.department} onChange={(event) => handleChange('department', event.target.value)} fullWidth />
-          <TextField select label="Statut" value={form.status} onChange={(event) => handleChange('status', event.target.value)} fullWidth>
-            <MenuItem value="Actif">Actif</MenuItem>
-            <MenuItem value="En attente">En attente</MenuItem>
-            <MenuItem value="Inactif">Inactif</MenuItem>
-            <MenuItem value="Acces revoque">Acces revoque</MenuItem>
+            <MenuItem value="Directeur de structure">Directeur de structure</MenuItem>
           </TextField>
           <TextField
             select
-            label="2FA obligatoire"
-            value={form.twoFactorRequired ? 'oui' : 'non'}
-            onChange={(event) => handleChange('twoFactorRequired', event.target.value === 'oui')}
+            label="Compte actif"
+            value={form.is_active ? 'oui' : 'non'}
+            onChange={(event) => handleChange('is_active', event.target.value === 'oui')}
             fullWidth
           >
             <MenuItem value="oui">Oui</MenuItem>
             <MenuItem value="non">Non</MenuItem>
           </TextField>
+          {!initialUser ? (
+            <TextField
+              label="Mot de passe"
+              type="password"
+              value={form.password}
+              onChange={(event) => handleChange('password', event.target.value)}
+              fullWidth
+              sx={{ gridColumn: { xs: 'span 1', sm: 'span 2' } }}
+            />
+          ) : null}
         </Box>
       </DialogContent>
       <DialogActions sx={{ px: 3, pb: 2 }}>
         <Button onClick={onClose} sx={{ textTransform: 'none', fontWeight: 700 }}>
           Annuler
         </Button>
-        <Button variant="contained" onClick={handleSubmit} sx={{ textTransform: 'none', fontWeight: 700 }}>
+        <Button
+          variant="contained"
+          onClick={handleSubmit}
+          sx={{ textTransform: 'none', fontWeight: 700 }}
+        >
           Enregistrer
         </Button>
       </DialogActions>
@@ -621,7 +572,8 @@ function UserDeleteDialog({ open, selectedUser, onClose, onConfirm }) {
       <DialogTitle sx={{ fontWeight: 800 }}>Supprimer l'utilisateur</DialogTitle>
       <DialogContent sx={{ pt: 1 }}>
         <Typography sx={{ fontSize: '0.92rem', color: '#5f6f86', mt: 0.5 }}>
-          Confirmer la suppression de <strong>{selectedUser?.name || 'cet utilisateur'}</strong>.
+          Confirmer la suppression de{' '}
+          <strong>{selectedUser ? getFullName(selectedUser) : 'cet utilisateur'}</strong>.
         </Typography>
       </DialogContent>
       <DialogActions sx={{ px: 3, pb: 2 }}>
