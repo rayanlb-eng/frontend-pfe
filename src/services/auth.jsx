@@ -1,19 +1,27 @@
-const API_BASE_URL = 'http://127.0.0.1:8000/api'
+import { apiRequest } from './apiClient'
 
-export async function loginUser(payload) {
-  const response = await fetch(`${API_BASE_URL}/login/`, {
+export function normalizeBackendRole(role) {
+  if (role === 'HR') return 'DDRH'
+  if (role === 'MANAGER') return 'Employeur'
+  if (role === 'ADMIN') return 'Admin'
+  return role || 'Employeur'
+}
+
+export async function loginUser(credentials) {
+  return apiRequest('/auth/login/', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(payload),
+    body: JSON.stringify(credentials),
   })
+}
 
-  const data = await response.json()
+export function getCurrentUser() {
+  return apiRequest('/auth/me/')
+}
 
-  if (!response.ok) {
-    throw new Error(data.message || 'Echec de connexion')
-  }
-
-  return data
+export function logoutUser() {
+  localStorage.removeItem('accessToken')
+  localStorage.removeItem('refreshToken')
+  localStorage.removeItem('isAuthenticated')
+  localStorage.removeItem('connectedUserRole')
+  localStorage.removeItem('connectedUserEmail')
 }

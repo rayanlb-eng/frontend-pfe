@@ -17,7 +17,7 @@ import {
 } from 'recharts'
 import MainLayout from '../../components/layout/mainLayout'
 import ChartCard from '../../components/ui/chartCard'
-import StatCard from '../../components/ui/statcard'
+import DashboardStatsGrid from '../../components/ui/dashboardStatsGrid'
 import { CONNECTED_USER_EMAIL_KEY, CONNECTED_USER_ROLE_KEY } from '../Users/users.data'
 import DashboardEmp from './dashboardEmp'
 import {
@@ -71,34 +71,6 @@ export default function Dashboard() {
         </Paper>
       </Box>
     </MainLayout>
-  )
-}
-
-function DashboardStatsGrid({ stats }) {
-  return (
-    <Box
-      sx={{
-        display: 'grid',
-        gridTemplateColumns: {
-          xs: '1fr',
-          sm: 'repeat(2, 1fr)',
-          lg: 'repeat(4, 1fr)',
-        },
-        gap: 1.6,
-      }}
-    >
-      {stats.map(({ title, value, subtitle, background, borderColor, Icon }) => (
-        <StatCard
-          key={title}
-          title={title}
-          value={value}
-          subtitle={subtitle}
-          icon={createElement(Icon)}
-          background={background}
-          borderColor={borderColor}
-        />
-      ))}
-    </Box>
   )
 }
 

@@ -1,5 +1,4 @@
 import { Box, Button, Chip, Paper, Stack, Typography } from '@mui/material'
-import { createElement } from 'react'
 import {
   Bar,
   BarChart,
@@ -13,7 +12,7 @@ import {
 import { useNavigate } from 'react-router-dom'
 import MainLayout from '../../components/layout/mainLayout'
 import ChartCard from '../../components/ui/chartCard'
-import StatCard from '../../components/ui/statcard'
+import DashboardStatsGrid from '../../components/ui/dashboardStatsGrid'
 import {
   dashboardSecondaryGridSx,
   dashboardSurfaceSx,
@@ -21,36 +20,6 @@ import {
   recentListSx,
   tooltipStyle,
 } from './dashboard.data'
-
-function DashboardStatsGrid({ stats }) {
-  const largeColumns = stats.length === 3 ? 'repeat(3, 1fr)' : 'repeat(4, 1fr)'
-
-  return (
-    <Box
-      sx={{
-        display: 'grid',
-        gridTemplateColumns: {
-          xs: '1fr',
-          sm: 'repeat(2, 1fr)',
-          lg: largeColumns,
-        },
-        gap: 1.6,
-      }}
-    >
-      {stats.map(({ title, value, subtitle, background, borderColor, Icon }) => (
-        <StatCard
-          key={title}
-          title={title}
-          value={value}
-          subtitle={subtitle}
-          icon={createElement(Icon)}
-          background={background}
-          borderColor={borderColor}
-        />
-      ))}
-    </Box>
-  )
-}
 
 function EmployerMainPanel({ focusBlock, onOpenForm }) {
   if (!focusBlock) return null
@@ -227,11 +196,13 @@ function EmployerTrainingChart({ charts }) {
 
 export default function DashboardEmp({ dashboardModel }) {
   const navigate = useNavigate()
+  const largeColumns =
+    dashboardModel.stats.length === 3 ? 'repeat(3, 1fr)' : 'repeat(4, 1fr)'
 
   return (
     <MainLayout>
       <Box sx={{ display: 'grid', gap: 3 }}>
-        <DashboardStatsGrid stats={dashboardModel.stats} />
+        <DashboardStatsGrid stats={dashboardModel.stats} largeColumns={largeColumns} />
 
         <Paper elevation={0} sx={dashboardSurfaceSx}>
           <Stack spacing={2.4}>

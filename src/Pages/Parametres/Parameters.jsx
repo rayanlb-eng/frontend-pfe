@@ -19,7 +19,6 @@ import MainLayout from '../../components/layout/mainLayout'
 import {
   CONNECTED_USER_EMAIL_KEY,
   CONNECTED_USER_ROLE_KEY,
-  getStoredUsers,
 } from '../Users/users.data'
 import { structureRecipients } from '../Fiches/data/data'
 
@@ -45,6 +44,13 @@ const iconBoxSx = (background, color) => ({
   flexShrink: 0,
 })
 
+function getTwoFactorRequiredForDemo(role, email) {
+  if (role === 'DDRH') return true
+
+  const sensitiveRecipients = new Set(['s.touati@mobilis.dz'])
+  return sensitiveRecipients.has(email)
+}
+
 export default function Parameters() {
   const [emailNotificationsEnabled, setEmailNotificationsEnabled] = useState(
     () => localStorage.getItem(NOTIFICATIONS_STORAGE_KEY) !== 'false'
@@ -55,11 +61,12 @@ export default function Parameters() {
   const [connectedUserEmail, setConnectedUserEmail] = useState(
     () => localStorage.getItem(CONNECTED_USER_EMAIL_KEY) || 'k.ziani@mobilis.dz'
   )
-  const [twoFactorRequired, setTwoFactorRequired] = useState(() => {
-    const email = localStorage.getItem(CONNECTED_USER_EMAIL_KEY) || 'k.ziani@mobilis.dz'
-    const user = getStoredUsers().find((item) => item.email === email)
-    return Boolean(user?.twoFactorRequired)
-  })
+  const [twoFactorRequired, setTwoFactorRequired] = useState(() =>
+    getTwoFactorRequiredForDemo(
+      localStorage.getItem(CONNECTED_USER_ROLE_KEY) || 'DDRH',
+      localStorage.getItem(CONNECTED_USER_EMAIL_KEY) || 'k.ziani@mobilis.dz'
+    )
+  )
 
   // Persiste l'option de notifications e-mail dans le navigateur.
   const handleToggleNotifications = (event) => {
@@ -73,6 +80,7 @@ export default function Parameters() {
     const value = event.target.value
     setConnectedUserRole(value)
     localStorage.setItem(CONNECTED_USER_ROLE_KEY, value)
+    setTwoFactorRequired(getTwoFactorRequiredForDemo(value, connectedUserEmail))
   }
 
   // Change l'utilisateur courant pour tester les flux par destinataire et les notifications.
@@ -80,8 +88,7 @@ export default function Parameters() {
     const value = event.target.value
     setConnectedUserEmail(value)
     localStorage.setItem(CONNECTED_USER_EMAIL_KEY, value)
-    const user = getStoredUsers().find((item) => item.email === value)
-    setTwoFactorRequired(Boolean(user?.twoFactorRequired))
+    setTwoFactorRequired(getTwoFactorRequiredForDemo(connectedUserRole, value))
   }
 
   return (

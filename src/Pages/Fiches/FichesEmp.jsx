@@ -19,6 +19,7 @@ import {
 import { useMemo, useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import MainLayout from '../../components/layout/mainLayout'
+import InfoBlock from '../../components/ui/infoBlock'
 import {
   CONNECTED_USER_EMAIL_KEY,
   CONNECTED_USER_ROLE_KEY,
@@ -318,9 +319,9 @@ export default function FichesEmp() {
                             flex: 1,
                           }}
                         >
-                          <InfoBlock label="Campagne" value={getCampaignLabel(row)} />
-                          <InfoBlock label="Fiche" value={row.templateName} />
-                          <InfoBlock label="Formations" value={requests.length} />
+                          <InfoBlock label="Campagne" value={getCampaignLabel(row)} variant="stack" />
+                          <InfoBlock label="Fiche" value={row.templateName} variant="stack" />
+                          <InfoBlock label="Formations" value={requests.length} variant="stack" />
                           <InfoBlock label="Employés" value={employeesCount} />
                         </Box>
 
@@ -403,18 +404,5 @@ export default function FichesEmp() {
         </DialogActions>
       </Dialog>
     </MainLayout>
-  )
-}
-
-function InfoBlock({ label, value }) {
-  return (
-    <Stack spacing={0.35}>
-      <Typography sx={{ fontSize: '0.76rem', color: '#8a97ad', fontWeight: 800 }}>
-        {label}
-      </Typography>
-      <Typography sx={{ fontSize: '0.92rem', color: '#1f2b42', fontWeight: 700 }}>
-        {value}
-      </Typography>
-    </Stack>
   )
 }

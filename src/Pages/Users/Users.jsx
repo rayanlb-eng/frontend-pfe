@@ -3,6 +3,7 @@ import MailOutlineRoundedIcon from '@mui/icons-material/MailOutlineRounded'
 import PersonAddAlt1RoundedIcon from '@mui/icons-material/PersonAddAlt1Rounded'
 import PhoneRoundedIcon from '@mui/icons-material/PhoneRounded'
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded'
+import { createUser, deleteUser, getUsers, updateUser } from "../../services/users"
 import {
   Alert,
   Avatar,
@@ -28,12 +29,10 @@ import {
   contentPaperSx,
   getFullName,
   getRoleColor,
-  getStoredUsers,
   getUserAvatar,
   getUserStatusLabel,
   mapRoleFlags,
   primaryButtonSx,
-  saveUsers,
   searchBoxSx,
   secondaryButtonSx,
   statCardSx,
@@ -68,20 +67,35 @@ function createEmptyUserForm() {
 }
 
 export default function Users() {
-  const [users, setUsers] = useState(getStoredUsers())
+  const [users, setUsers] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
   const [feedback, setFeedback] = useState('')
   const [selectedUser, setSelectedUser] = useState(null)
   const [formDialogOpen, setFormDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+
   const [connectedUserRole] = useState(
     () => localStorage.getItem(CONNECTED_USER_ROLE_KEY) || 'DDRH'
   )
+  const loadUsers = async () => {
+    setLoading(true)
+    setError('')
+    setFeedback('')
 
+    try {
+      const data = await getUsers()
+      setUsers(Array.isArray(data) ? data : [])
+    } catch (err) {
+      setError(err.message || 'Impossible de charger les utilisateurs')
+    } finally {
+      setLoading(false)
+    }
+  }
   useEffect(() => {
-    saveUsers(users)
-  }, [users])
-
+    loadUsers()
+  }, [])
   const canManageUsers =
     connectedUserRole === 'DDRH' || connectedUserRole === 'Admin'
 
@@ -124,33 +138,64 @@ export default function Users() {
     setSelectedUser(user)
     setFormDialogOpen(true)
   }
+  const handleSaveUser = async (nextUser) => {
+  setError('')
+  setFeedback('')
 
-  const handleSaveUser = (nextUser) => {
-    setUsers((currentUsers) => {
-      const exists = selectedUser
-        ? currentUsers.some((user) => user.username === selectedUser.username)
-        : currentUsers.some(
-            (user) =>
-              user.username === nextUser.username || user.email === nextUser.email
-          )
+  try {
+    if (selectedUser) {
+      const updatedUser = await updateUser(selectedUser.id, nextUser)
 
-      if (!exists) {
-        return [...currentUsers, nextUser]
-      }
-
-      return currentUsers.map((user) =>
-        user.username === selectedUser.username ? { ...nextUser } : user
+      setUsers((currentUsers) =>
+        currentUsers.map((user) =>
+          user.id === selectedUser.id ? updatedUser : user
+        )
       )
-    })
 
-    setFeedback(
-      selectedUser
-        ? `Les informations de ${getFullName(nextUser)} ont ete mises a jour.`
-        : `Le nouvel utilisateur ${getFullName(nextUser)} a ete ajoute.`
-    )
+      setFeedback(
+        `Les informations de ${getFullName(updatedUser)} ont ete mises a jour.`
+      )
+    } else {
+      const createdUser = await createUser(nextUser)
+
+      setUsers((currentUsers) => [createdUser, ...currentUsers])
+
+      setFeedback(
+        `Le nouvel utilisateur ${getFullName(createdUser)} a ete ajoute.`
+      )
+    }
+
     setFormDialogOpen(false)
     setSelectedUser(null)
+  } catch (err) {
+    setError(err.message || "Impossible d'enregistrer l'utilisateur")
   }
+}
+
+  const handleDeleteUser = async () => {
+    if (!selectedUser) return
+
+    setError('')
+    setFeedback('')
+
+    try {
+      await deleteUser(selectedUser.id)
+
+      setUsers((currentUsers) =>
+        currentUsers.filter((user) => user.id !== selectedUser.id)
+      )
+
+      setFeedback(
+        `${getFullName(selectedUser)} a été supprimé  de la liste des utilisateurs.`
+      )
+
+      setDeleteDialogOpen(false)
+      setSelectedUser(null)
+    } catch (err) {
+      setError(err.message || "Impossible de supprimer l'utilisateur")
+    }
+  }
+
 
   const handleOpenDeleteUser = (user) => {
     if (!canManageUsers) return
@@ -158,31 +203,43 @@ export default function Users() {
     setDeleteDialogOpen(true)
   }
 
-  const handleDeleteUser = () => {
-    if (!selectedUser) return
 
-    setUsers((currentUsers) =>
-      currentUsers.filter((user) => user.username !== selectedUser.username)
-    )
-    setFeedback(`${getFullName(selectedUser)} a ete supprime de la liste des utilisateurs.`)
-    setDeleteDialogOpen(false)
-    setSelectedUser(null)
-  }
-
-  const handleDeactivateUser = (userToUpdate) => {
+  const handleDeactivateUser = async (userToUpdate) => {
     if (!canManageUsers) return
 
-    setUsers((currentUsers) =>
-      currentUsers.map((user) =>
-        user.username === userToUpdate.username
-          ? {
-              ...user,
-              is_active: false,
-            }
-          : user
+    setError('')
+    setFeedback('')
+
+    try {
+      const updatedUser = await updateUser(userToUpdate.id, {
+        is_active: false,
+      })
+
+      setUsers((currentUsers) =>
+        currentUsers.map((user) =>
+          user.id === userToUpdate.id ? updatedUser : user
+        )
       )
+
+      setFeedback(`Le compte de ${getFullName(updatedUser)} a été desactivé.`)
+    } catch (err) {
+      setError(err.message || "Impossible de désactiver l'utilisateur")
+    }
+  }
+
+
+  if (loading) {
+    return (
+      <MainLayout>
+        <Box sx={{ display: 'grid', gap: 3 }}>
+          <Paper elevation={0} sx={contentPaperSx}>
+            <Typography sx={{ fontWeight: 700, color: '#1b2740' }}>
+              Chargement des utilisateurs...
+            </Typography>
+          </Paper>
+        </Box>
+      </MainLayout>
     )
-    setFeedback(`Le compte de ${getFullName(userToUpdate)} a ete desactive.`)
   }
 
   return (
@@ -205,12 +262,17 @@ export default function Users() {
                 ? 'Le formulaire est aligne sur les attributs backend utilisateur.'
                 : "Le systeme refuse l'acces a la gestion des utilisateurs pour un directeur de structure."}
             </Alert>
+            {error ? (
+              <Alert severity="error" sx={{ borderRadius: '14px' }}>
+                {error}
+              </Alert>
+            ) : null}
 
             {feedback || passiveFeedback ? (
               <Alert
                 severity={
                   (feedback || passiveFeedback).includes('introuvable') ||
-                  (feedback || passiveFeedback).includes('Acces refuse')
+                    (feedback || passiveFeedback).includes('Acces refuse')
                     ? 'error'
                     : 'success'
                 }
@@ -243,7 +305,7 @@ export default function Users() {
               <Box sx={usersGridSx}>
                 {filteredUsers.map((user) => (
                   <UserCard
-                    key={user.username}
+                    key={user.id || user.username}
                     user={user}
                     canManageUsers={canManageUsers}
                     onEditUser={handleOpenEditUser}
@@ -255,7 +317,7 @@ export default function Users() {
             )}
 
             <UserFormDialog
-              key={selectedUser?.username || 'new-user'}
+              key={selectedUser?.username|| selectedUser?.id || 'new-user'}
               open={formDialogOpen}
               initialUser={selectedUser}
               onClose={() => {
@@ -422,17 +484,17 @@ function UserFormDialog({ open, initialUser, onClose, onSave }) {
   const [form, setForm] = useState(() =>
     initialUser
       ? {
-          username: initialUser.username || '',
-          email: initialUser.email || '',
-          first_name: initialUser.first_name || '',
-          last_name: initialUser.last_name || '',
-          telephone: initialUser.telephone || '',
-          departement: initialUser.departement || '',
-          role: initialUser.role || 'Directeur de structure',
-          is_active:
-            typeof initialUser.is_active === 'boolean' ? initialUser.is_active : true,
-          password: '',
-        }
+        username: initialUser.username || '',
+        email: initialUser.email || '',
+        first_name: initialUser.first_name || '',
+        last_name: initialUser.last_name || '',
+        telephone: initialUser.telephone || '',
+        departement: initialUser.departement || '',
+        role: initialUser.role || 'Directeur de structure',
+        is_active:
+          typeof initialUser.is_active === 'boolean' ? initialUser.is_active : true,
+        password: '',
+      }
       : createEmptyUserForm()
   )
 

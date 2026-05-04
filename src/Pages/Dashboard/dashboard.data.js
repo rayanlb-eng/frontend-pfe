@@ -11,7 +11,7 @@ import {
   getStoredNotifications,
   getStoredTrackingRows,
 } from '../Fiches/data/storage'
-import { getStoredUsers } from '../Users/users.data'
+import { initialUsers } from '../Users/users.data'
 
 const defaultAccent = 'rgba(255,255,255,0.16)'
 
@@ -29,6 +29,7 @@ const quickActionPalette = {
 }
 
 const recipientById = new Map(structureRecipients.map((recipient) => [recipient.id, recipient]))
+const dashboardUsers = initialUsers
 
 function parseTrackingDate(value) {
   const [day, month, year] = String(value || '').split('/')
@@ -398,7 +399,6 @@ function buildEmployerReviewTable(currentRow, currentForm, notifications) {
 export function buildDdrhDashboardModel() {
   const rows = getRowsWithRecipientMeta()
   const forms = getStoredFormStates()
-  const users = getStoredUsers()
   const trainingRequests = getFormRequestsList(forms)
 
   const submittedRows = rows.filter((row) => row.formStatus === 'Soumise' && !row.locked)
@@ -433,7 +433,7 @@ export function buildDdrhDashboardModel() {
       },
       {
         title: 'Utilisateurs',
-        value: String(users.length),
+        value: String(dashboardUsers.length),
         subtitle: 'Comptes employeurs et DDRH',
         background: 'linear-gradient(135deg, #2563eb 0%, #38bdf8 100%)',
         Icon: PeopleAltRoundedIcon,

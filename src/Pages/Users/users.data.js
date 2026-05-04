@@ -191,15 +191,7 @@ function normalizeUser(rawUser) {
   }
 }
 
-export function getStoredUsers() {
-  const raw = localStorage.getItem(USERS_STORAGE_KEY)
-  const users = raw ? JSON.parse(raw) : initialUsers
-  return users.map(normalizeUser)
-}
 
-export function saveUsers(users) {
-  localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(users))
-}
 
 export const contentPaperSx = {
   p: { xs: 2, md: 2.3 },

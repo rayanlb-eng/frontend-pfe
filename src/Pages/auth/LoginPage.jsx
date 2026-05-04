@@ -12,12 +12,13 @@ import {
   TextField,
   Typography,
 } from '@mui/material'
-import { loginUser } from '../../services/auth'
+import { loginUser, normalizeBackendRole } from '../../services/auth'
 import { useEffect, useMemo, useState } from 'react'
 import { Link as RouterLink, useNavigate } from 'react-router-dom'
 import BrandHeader from '../../components/auth/Brandheader'
 import PasswordField from '../../components/auth/PasswordField'
 import { inputSx } from '../../theme/authstyles'
+import { CONNECTED_USER_EMAIL_KEY, CONNECTED_USER_ROLE_KEY } from '../Users/users.data'
 
 const MAX_ATTEMPTS = 3
 const BLOCK_DURATION_MS = 1 
@@ -129,10 +130,13 @@ function LoginPage({ onLogin }) {
       localStorage.setItem('accessToken', data.access)
       localStorage.setItem('refreshToken', data.refresh)
       localStorage.setItem('isAuthenticated', 'true')
+      localStorage.setItem(CONNECTED_USER_ROLE_KEY, normalizeBackendRole(data.user?.role))
+      localStorage.setItem(CONNECTED_USER_EMAIL_KEY, data.user?.email || identifier.trim())
 
       onLogin?.({
         username: identifier.trim(),
         rememberMe,
+        user: data.user,
       })
 
       setLoading(false)

@@ -12,6 +12,7 @@ import {
 import { useEffect, useMemo, useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import MainLayout from '../../components/layout/mainLayout'
+import InfoBlock from '../../components/ui/infoBlock'
 import { CONNECTED_USER_ROLE_KEY } from '../Users/users.data'
 import FicheSendForm from './component/FicheSendForm'
 import { ficheTemplates, structureRecipients } from './data/data'
@@ -316,8 +317,8 @@ export default function FichesDdrh() {
                         flex: 1,
                       }}
                     >
-                      <InfoBlock label="Structure" value={row.structure} />
-                      <InfoBlock label="Responsable" value={row.manager} />
+                      <InfoBlock label="Structure" value={row.structure} variant="stack" />
+                      <InfoBlock label="Responsable" value={row.manager} variant="stack" />
                       <InfoBlock
                         label="Statut"
                         value={
@@ -328,7 +329,7 @@ export default function FichesDdrh() {
                           />
                         }
                       />
-                      <InfoBlock label="Nb formations" value={row.formationsCount} />
+                      <InfoBlock label="Nb formations" value={row.formationsCount} variant="stack" />
                       <InfoBlock label="Nb employés" value={row.employeesCount} />
                     </Box>
 
@@ -359,22 +360,5 @@ export default function FichesDdrh() {
         </Paper>
       </Box>
     </MainLayout>
-  )
-}
-
-function InfoBlock({ label, value }) {
-  return (
-    <Stack spacing={0.35}>
-      <Typography sx={{ fontSize: '0.76rem', color: '#8a97ad', fontWeight: 800 }}>
-        {label}
-      </Typography>
-      {typeof value === 'string' || typeof value === 'number' ? (
-        <Typography sx={{ fontSize: '0.92rem', color: '#1f2b42', fontWeight: 700 }}>
-          {value}
-        </Typography>
-      ) : (
-        value
-      )}
-    </Stack>
   )
 }

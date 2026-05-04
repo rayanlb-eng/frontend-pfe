@@ -24,6 +24,8 @@ import {
 import { useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import MainLayout from '../../components/layout/mainLayout'
+import FormGrid from '../../components/ui/formGrid'
+import FormSection from '../../components/ui/formSection'
 import { CONNECTED_USER_ROLE_KEY } from '../Users/users.data'
 import { employeesDirectory, ficheTemplates } from './data/data'
 import {
@@ -823,30 +825,5 @@ export default function FicheFormPage() {
         </DialogActions>
       </Dialog>
     </MainLayout>
-  )
-}
-
-function FormSection({ title, children }) {
-  return (
-    <Stack spacing={1.4}>
-      <Typography sx={{ fontWeight: 700, color: '#334155', fontSize: '0.95rem' }}>
-        {title}
-      </Typography>
-      {children}
-    </Stack>
-  )
-}
-
-function FormGrid({ children }) {
-  return (
-    <Box
-      sx={{
-        display: 'grid',
-        gridTemplateColumns: { xs: '1fr', md: 'repeat(2, minmax(0, 1fr))' },
-        gap: 1.4,
-      }}
-    >
-      {children}
-    </Box>
   )
 }
